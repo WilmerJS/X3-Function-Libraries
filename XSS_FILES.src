@@ -1,0 +1,291 @@
+#<AdxTL>@(#)0.0.0.0 $Revision$
+# ================================================================================================ #
+#
+#   AKTIEBOLAGET SYSTEMSTÖD SVERIGE
+#
+#     Wilmer Jensen Sternehäll
+#     wilmer.sternehall@systemstod.se
+#
+#   ---
+#     Name:
+#       XSS_FILES
+#     Description:
+#       A Systemstöd function library script containing custom Sage X3 functions developed
+#       in a general, comprehensive manner meant to fit any Sage X3 installation.
+#
+#       The functions are this file is related to FILE MANAGEMENT.
+#
+#
+#
+#   Copyright @ 2018 - 2020, Aktiebolaget Systemstöd Sverige
+#
+#
+# ================================================================================================ #
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the file names of all the files in the given directory.
+#*
+#* @param DIRECTORY The directory of the files to be returned.
+#* @param FILE_LIST The array variable to be filled with the found file names. This is a return value.
+#* @param TEXT_FILTER If this is not null, files will only be returned if their name contains this string. Otherwise files are only returned if they are not empty.
+#*
+#* @return An integer value, the amount of files found
+#*
+#*!
+Funprog GET_FILES_FROM_DIRECTORY(DIRECTORY, FILE_LIST, TEXT_FILTER)
+Value Char DIRECTORY
+Variable Char FILE_LIST()
+Value Char TEXT_FILTER
+
+Local Char DIR(250)
+Local Char FILE_DRAFT(250)(1..dim(FILE_LIST) + 1)
+Local Integer FILE_AMOUNT
+Local Integer FILE_COUNT
+Local Integer I
+
+  DIR = filpath(DIRECTORY,"","")
+  Call SYSTEME2(adxmac(0), "lsadx"-DIR, "", FILE_AMOUNT, FILE_DRAFT) From ORDSYS
+
+  For I = 1 To FILE_AMOUNT
+
+    If FILE_COUNT > dim(FILE_LIST) - 1
+      Errbox "Array variable cannot store all the files: too few dimensions", "Please contact Systemstöd"
+      End FILE_COUNT
+    Endif
+
+    If TEXT_FILTER <> ""
+      If instr(1, FILE_DRAFT(I), TEXT_FILTER)
+        FILE_LIST(FILE_COUNT) = FILE_DRAFT(I)
+        FILE_COUNT += 1
+      Endif
+    Else
+      If filinfo(DIR + "\" + FILE_DRAFT(I), 7) > 0
+        FILE_LIST(FILE_COUNT) = FILE_DRAFT(I)
+        FILE_COUNT += 1
+      Endif
+    Endif
+
+  Next
+
+End FILE_COUNT
+
+##############################################################################################################
+# < WIST >
+#**
+#* Opens a selection window for the user to choose a client file to upload to the X3 Storage Area. File is first uploaded to TMP,
+#* and then moved to the specified directory.
+#*
+#* @param DIRECTORY The directory to which the file will be moved after it is uploaded
+#* @param OUTFILEDEST OUTPUT: The filepath of the file after function has been completed
+#* @param VARSTAT OUTPUT: Status variable - 1 = No file was selected ; 2 = Upload failed ; -1 = File transfer failed, file is located in TMP
+#*
+#*!
+Funprog OPEN_UPLOAD_FILE_TO(DIRECTORY)
+Value Char DIRECTORY
+
+Local Char OUTFILEDEST
+Local Char FILEPATH(255) : FILEPATH = filpath(DIRECTORY,"","")
+Local Char FILNAME(255)
+Local Char TMPPATH(255)
+Local Integer STAT
+
+  # prompt user upload to the 'TMP' folder
+  Call COPSRV(FILNAME,TMPPATH,STAT) From ORDSYS
+
+  #   -   error handling
+  If FILNAME = ""
+    Infbox("No file selected.")
+    End
+  Endif
+
+  #   -   error handling
+  If STAT = !0
+    Infbox("File could not be uploaded to the server.")
+    End
+  Endif
+
+  # only move file to target directory if target directory is not 'TMP'
+  If DIRECTORY <> "TMP" and DIRECTORY <> "tmp"
+    Call MOVE(TMPPATH, FILEPATH, STAT) From ORDSYS
+  Endif
+
+  OUTFILEDEST = FILEPATH + "\" + FILNAME
+
+  #   -   error handling
+  If STAT = !0
+    Infbox("File could not be placed in the given directory. It was automatically placed in 'tmp'-folder.")
+    End
+  Endif
+
+  Infbox(FILNAME + " successfully uploaded to: " + FILEPATH)
+
+End OUTFILEDEST
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the extension of a file by returning all characters behind (excluding) the last dot (.).
+#*
+#* @param TARGET_FILE The file to return the extension of
+#*
+#* @return A string value, containing the extension (file format) of the given file
+#*!
+Funprog GET_FILE_EXTENSION(TARGET_FILE)
+Value Char TARGET_FILE
+
+Local Char FILEEXT(10)
+Local Integer LASTDOT_POS : LASTDOT_POS = 0
+
+  While instr(LASTDOT_POS + 1, TARGET_FILE, ".") <> 0
+    LASTDOT_POS = instr(LASTDOT_POS + 1, TARGET_FILE, ".")
+  Wend
+
+  FILEEXT = seg$(TARGET_FILE, LASTDOT_POS + 1, len(TARGET_FILE))
+
+End FILEEXT
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the name of the file from a filepath, if the filepath points to a file.
+#*
+#* @param FILEPATH The filepath of the file to get the name of
+#*
+#* @return A string value, containing the name of the file on the given filepath
+#*!
+Funprog GET_FILE_NAME(FILEPATH)
+Value Char FILEPATH
+
+Local Char FILNAME(250)
+Local Integer LASTBACKSLASH_POS : LASTBACKSLASH_POS = 0
+
+  While instr(LASTBACKSLASH_POS + 1, FILEPATH, "\") <> 0
+    LASTBACKSLASH_POS = instr(LASTBACKSLASH_POS + 1, FILEPATH, "\")
+  Wend
+
+  # all characters behind the last slash, but remove the extension (including the dot)
+  FILNAME = seg$(FILEPATH, LASTBACKSLASH_POS + 1, len(FILEPATH) - (len(func GETFILEEXT(FILEPATH)) + 1))
+
+End FILNAME
+
+##############################################################################################################
+# < WIST >
+#**
+#* Imports a file through an import template.
+#*
+#* @param TEMPLATE The import template to be used
+#* @param FILE_PATH The filepath of the file to be imported
+#* @param SHOW_LOG If non-zero, displays the log for the import to the user
+#*
+#*!
+Subprog IMPORT(TEMPLATE, FILE_PATH, SHOW_LOG)
+Value Char TEMPLATE
+Value Char FILE_PATH
+Value Tinyint SHOW_LOG
+
+  Call OUVRE_TRACE("File import") From LECFIC           # OPEN LOG FILE
+
+  Call TEMPON("Import in progress") From GESECRAN
+  Call IMPORTSIL(TEMPLATE, FILE_PATH) From GIMPOBJ        # IMPORT
+  Call TEMPOFF From GESECRAN
+
+  Call FERME_TRACE From LECFIC                          # CLOSE LOG FILE
+
+  If SHOW_LOG
+    Call LEC_TRACE From LECFIC                            # DISPLAY LOG
+  Endif
+
+End
+
+##############################################################################################################
+# < WIST >
+#**
+#* Adds a file to the given objects (functions) attachments.
+#*
+#* @param OBJECT Type of object (function) to add attachment to, e.g. SOH (sales order)
+#* @param OBJECT_ID Identification of the specific object, e.g. should match SOHNUM if object is SOH
+#* @param FILELOCATION File location of the file to attach - format is: [FILEDIR]\filename.fileext
+#* @param FILETYPE Type of file - see all types in misc. table '902'
+#*
+#*!
+Subprog ADD_ATTACHMENT(OBJECT, OBJECT_ID, FILELOCATION, FILETYPE)
+Value Char OBJECT
+Value Char OBJECT_ID
+#Value Char IDENT2
+Value Char FILELOCATION
+Value Char FILETYPE
+
+Local File AOBJTXT[ATT]
+Local Integer ATTCOUNT : ATTCOUNT = 1
+Local Char NEXTID(3)
+
+  Filter [ATT] Where ABREV = OBJECT and IDENT1 = OBJECT_ID
+
+  # - create 3 digit id code for next attachment
+  # - e.g. if 2 attachments already exists, the new one will have id '003'
+  For [ATT]
+    ATTCOUNT += 1
+  Next
+  NEXTID = format$("N0:3",num$(ATTCOUNT))   # fill string with '0' until 3rd character, where ATTCOUNT is added
+
+  Trbegin [ATT]
+    [ATT]ABREV = OBJECT
+    [ATT]IDENT1 = OBJECT_ID
+    [ATT]IDENT2 = ""
+    [ATT]IDENT3 = NEXTID
+    [ATT]NAM = FILELOCATION
+    [ATT]TYPDOC = FILETYPE
+  Write
+  If fstat = 0
+    Commit
+    Infbox "Added file to attachments" Titled "Attachments"
+  Else
+    Rollback
+    Errbox "Could not add file to attachments" Titled "Attachments"
+  Endif
+End
+
+##############################################################################################################
+# < WIST >
+#**
+#* Downloads a file in the users browser.
+#*
+#* @param FILEPATH Filepath of the file to be downloaded
+#*!
+Subprog DOWNLOAD_FILE(FILEPATH)
+Value Char FILEPATH
+
+Local Char TMPPATH(250)
+Local Integer STAT : STAT = 0
+
+  TMPPATH = filpath("TMP", "tmp_" + uuid$, func GET_FILE_EXTENSION(FILEPATH))
+
+  Call MOVE(FILEPATH, TMPPATH, STAT) From ORDSYS                    # change file name to a temporary one to avoid download error
+
+  Call COPCLI(TMPPATH, FILEPATH, STAT) From ORDSYS                  # change back to original file name while downloading
+
+  Call MOVE(TMPPATH,FILEPATH, STAT) From ORDSYS
+
+  If STAT =! 0
+    Errbox("Could not download file") Titled "Download error"
+  Endif
+
+End
+
+##############################################################################################################
+# < WIST >
+#**
+#* Deletes a file from the server.
+#*
+#* @param FILEPATH Filepath of the file to be deleted
+#*!
+Subprog DELETE_FILE(FILEPATH)
+Value Char FILEPATH
+
+Local Integer ERRCODE
+
+  ERRCODE = Delfile(FILEPATH)
+End ERRCODE
+

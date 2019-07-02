@@ -1,0 +1,166 @@
+#<AdxTL>@(#)0.0.0.0 $Revision$
+# ================================================================================================ #
+#
+#   AKTIEBOLAGET SYSTEMSTÖD SVERIGE
+#
+#     Wilmer Jensen Sternehäll
+#     wilmer.sternehall@systemstod.se
+#
+#   ---
+#     Name:
+#       XSS_VARIABLES
+#     Description:
+#       A Systemstöd function library script containing custom Sage X3 functions developed
+#       in a general, comprehensive manner meant to fit any Sage X3 installation.
+#
+#       The functions are this file is related to VARIABLE MANAGEMENT.
+#
+#
+#
+#   Copyright @ 2018 - 2020, Aktiebolaget Systemstöd Sverige
+#
+#
+# ================================================================================================ #
+
+##############################################################################################################
+# < WIST >
+#**
+#* Replaces a substring of a string, with another string value.
+#*
+#* @param STRING The string in which to replace a substring
+#* @param TO_REPLACE The substring to replace
+#* @param REPLACE_BY The string value to replace the substring with
+#*
+#* @return A string value, the new modified string
+#*!
+Funprog REPLACE(STRING, TO_REPLACE, REPLACE_BY)
+Value Char STRING
+Value Char TO_REPLACE
+Value Char REPLACE_BY
+
+Local Integer POS
+
+  While instr(POS+1, STRING, TO_REPLACE) > 0
+    POS = instr(POS+1, STRING, TO_REPLACE)
+    STRING = left$(STRING, POS-1) + REPLACE_BY + right$(STRING, POS+len(TO_REPLACE))
+
+    POS += len(TO_REPLACE)
+  Wend
+
+End STRING
+
+##############################################################################################################
+# < WIST >
+#**
+#* Returns the position of a specified occurence of a substring in another string.
+#* Returns 0 if no occurence were found, or if the parameter OCCURENCE < 1
+#*
+#* @param SEARCHSTRING The string to be searched
+#* @param SEARCHVALUE The value to be searched for
+#* @param OCCURENCE The occurence of SEARCHVALUE to return the position of
+#*
+#* @return An integer value, representing the position of the given occurence of a string value, in another string
+#*!
+Funprog GET_SUBSTRING_POS(SEARCHSTRING, SEARCHVALUE, OCCURENCE)
+Const Char SEARCHVALUE
+Value Integer OCCURENCE
+
+Local Integer COUNT
+Local Integer POS
+
+  While COUNT < OCCURENCE
+
+    POS = instr(POS + 1, SEARCHSTRING, SEARCHVALUE)
+    COUNT += 1
+
+  Wend
+
+End POS
+
+##############################################################################################################
+# < WIST >
+#**
+#* Returns a specific segment of a string value, based on a delimiter indicator used to
+#* determine the end of each segment.
+#*
+#* GET_STRING_SEGMENT looks for the (1 * SEGMENTINDEX - 1) and (1 * SEGMENTINDEX) occurences of the DELIMITER character(s) in SEARCHSTRING,
+#* and returns all the characters in between them.
+#*
+#* @param SEARCHSTRING The string to be searched
+#* @param DELIMITER The start/end indicator of each segment
+#* @param SEGMENTINDEX The index of the segment to be returned
+#*
+#* @return A string value, the specified segment of the original string value
+#*!
+Funprog GET_STRING_SEGMENT(SEARCHSTRING, DELIMITER, SEGMENTINDEX)
+Value Char DELIMITER
+Value Integer SEGMENTINDEX
+
+Local Integer FIRSTCHARPOS
+Local Integer LASTCHARPOS
+
+  If SEGMENTINDEX = 0 : SEGMENTINDEX = 1 : Endif
+
+  FIRSTCHARPOS = func GET_SUBSTRING_POS(SEARCHSTRING, DELIMITER, SEGMENTINDEX - 1) + 1
+  LASTCHARPOS  = func GET_SUBSTRING_POS(SEARCHSTRING, DELIMITER, SEGMENTINDEX)     - 1
+
+  If LASTCHARPOS < 1
+    End ""
+  Endif
+
+  Local Char RESULT(250)
+
+  RESULT = seg$(SEARCHSTRING, FIRSTCHARPOS, LASTCHARPOS)
+
+End RESULT
+
+##############################################################################################################
+# < WIST >
+#**
+#* Sets the value of a string variable if it's empty, but does nothing if it already has a value.
+#* Useful when assigning a variable from a hierarchy of potentially empty values.
+#*
+#*
+#* @param XVAR The string variable to be checked and assigned
+#* @param XVAL The string value to assign the variable to
+#*
+#*!
+Subprog ASSIGN_IF_EMPTY(XVAR, XVAL)
+Variable Char XVAR
+Value Char XVAL
+
+  If len(XVAR) = 0
+    XVAR = XVAL
+  Endif
+
+End
+
+##############################################################################################################
+# < WIST >
+#**
+#* Adds a character to the left of a string, until the string reaches the desired length.
+#* E.g. STRING_FILL_LEFT("E345", 8, "0")
+#*
+#* returns "0000E345"
+#*
+#*
+#* @param STRING The string that is to be right-aligned
+#* @param LENGTH Desired length of result string
+#* @param FILL_CHAR The character to fill the string with
+#*
+#*!
+Funprog STRING_FILL_LEFT(STRING, LENGTH, FILL_CHAR)
+Value Char STRING
+Value Shortint LENGTH
+Value Char FILL_CHAR
+
+Local Char RESULT(30)
+
+  #STRING = vireblc(STRING, 4)
+
+  If len(STRING) < LENGTH
+    RESULT = string$(LENGTH - len(STRING), FILL_CHAR) + STRING
+  Endif
+
+End RESULT
+

@@ -1,0 +1,331 @@
+#<AdxTL>@(#)0.0.0.0 $Revision$
+# ================================================================================================ #
+#
+#   AKTIEBOLAGET SYSTEMSTÖD SVERIGE
+#
+#     Wilmer Jensen Sternehäll
+#     wilmer.sternehall@systemstod.se
+#
+#   ---
+#     Name:
+#       XSS_STOCK
+#     Description:
+#       A Systemstöd function library script containing custom Sage X3 functions developed
+#       in a general, comprehensive manner meant to fit any Sage X3 installation.
+#
+#       The functions are this file is related to STOCK MANAGEMENT.
+#
+#
+#
+#   Copyright @ 2018 - 2020, Aktiebolaget Systemstöd Sverige
+#
+#
+# ================================================================================================ #
+
+##############################################################################################################
+# < WIST >
+#**
+#* Checks if an item is in stock.
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to look for.
+#*
+#* @return An integer value, 1 if the item is in stock and 0 if it is not.
+#*!
+Funprog IS_ITEM_IN_STOCK(SITE, ITEM)
+Value Char SITE
+Value Char ITEM
+
+  Local File STOCK [YSTO]
+  Filter [YSTO] Where STOFCY = SITE and ITMREF = ITEM
+
+  If rowcount([YSTO]) > 0
+    End 1
+  Endif
+
+End 0
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the total quantity of an item on sales orders with a delivery date prior to or
+#* on a date, and that isn't assigned to a pick ticket or delivery.
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to deliver.
+#* @param DAT The date the the item should be delivered on or before.
+#*
+#* @return An integer value, the quantity to be delivered.
+#*!
+Funprog GET_QTY_TO_DELIVER_BEFORE_AT_DATE(SITE, ITEM, DAT)
+Value Char SITE
+Value Char ITEM
+Value Date DAT
+
+  Local File SORDERQ [F:YSOQ]
+  Filter [F:YSOQ] Where STOFCY = SITE and ITMREF = ITEM and SHIDAT <= DAT and SOQSTA < 3  # SOQSTA = 3 avslutad rad
+
+  Local Decimal QTY
+
+  For [F:YSOQ]
+
+    [L]QTY += ([F:YSOQ]QTYSTU - [F:YSOQ]PREQTYSTU - [F:YSOQ]ODLQTYSTU - [F:YSOQ]DLVQTYSTU)
+
+  Next
+
+End [L]QTY
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the first empty location of the specified location type, in alphanumeric
+#* order.
+#*
+#* @param SITE The relevant site
+#* @param LOC_TYPE The location type of which to search for a location
+#* @param MIN_LOC If this value is not null, the function returns the first empty location alphanumerically following this one
+#*
+#* @return A string value, the first empty location
+#*!
+Funprog GET_EMPTY_LOC_FROM_TYPE(SITE, LOC_TYPE, MIN_LOC)
+Value Char SITE
+Value Char LOC_TYPE
+Value Char MIN_LOC
+
+  Local File STOLOC [YSL]
+  Filter [YSL] Where STOFCY = SITE and LOCTYP = LOC_TYPE and OCPCOD = 1
+&              Order By LOC Asc
+
+  Read [YSL] First
+
+End [YSL]LOC
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the first location (empty or not) of the specified location type, in alphanumeric
+#* order.
+#*
+#* @param SITE The relevant site
+#* @param LOC_TYPE The location type of which to search for a location
+#*
+#* @return A string value, the first location
+#*!
+Funprog GET_LOC_FROM_TYPE(SITE, LOC_TYPE)
+Value Char SITE
+Value Char LOC_TYPE
+
+  Local File STOLOC [YSL]
+  Filter [YSL] Where STOFCY = SITE and LOCTYP = LOC_TYPE
+&              Order By LOC Asc
+
+  Read [YSL] First
+
+End [YSL]LOC
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the quantity of an item on a location.
+#*
+#* @param SITE The relevant site
+#* @param LOCATION The location on which to count the item
+#* @param ITEM The item to get the quantity of
+#*
+#* @return An integer value, the item quantity
+#*!
+Funprog GET_LOC_ITM_QTY(SITE, LOCATION, ITEM)
+Value Char SITE
+Value Char LOCATION
+Value Char ITEM
+
+  Local File STOCK [YSTO]
+  Filter [YSTO] Where STOFCY = SITE and LOC = LOCATION and ITMREF = ITEM
+
+  Local Decimal COUNT
+
+  For [YSTO]
+    COUNT += [YSTO]QTYSTU
+  Next
+
+End COUNT
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the quantity of an item on a location with detailed allocations.
+#*
+#* @param SITE The relevant site
+#* @param LOCATION The location on which to count the item
+#* @param ITEM The item to get the quantity of
+#*
+#* @return An integer value, the items detailed allocation quantity
+#*!
+
+Funprog GET_LOC_ITM_QTY_DETAILED_ALLOC(SITE, LOCATION, ITEM)
+Value Char SITE
+Value Char LOCATION
+Value Char ITEM
+
+  Local File STOCK  [YSTO]
+  Local File STOALL [YSTA]
+
+  Link [YSTA] With [YSTO]STO0 ~= [YSTA]STOFCY ; [YSTA]STOCOU
+&             As   [YLNK]
+&             Where [YSTA]STOFCY = SITE and [YSTO]LOC = LOCATION and [YSTA]ITMREF = ITEM and [YSTA]ALLTYP = 2
+&             Order By [YSTO]LOC
+
+  Local Decimal COUNT
+
+  For [YLNK]
+    COUNT += [YSTA]QTYSTU
+  Next
+
+End COUNT
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the total outgoing quantity of an item, by summarizing the quantities
+#* of the item on all active sales orders (labeled with status 'Firm' or 'Planned').
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to get the quantity of
+#*
+#* @return An integer value, the total outgoing quantity of the item
+#*!
+Funprog GET_ITEM_OUT_QUANTITY(SITE, ITEM)
+Value Char SITE
+Value Char ITEM
+#-
+Local Decimal QTY
+
+  Local File ORDERS [YORS]
+  Filter [YORS] Where ITMREF = ITEM and STOFCY = SITE and WIPTYP = 1 and (WIPSTA = 1 or WIPSTA = 2)
+&               Order By ENDDAT
+
+  For [YORS]
+    QTY += [YORS]RMNEXTQTY
+  Next
+
+End QTY
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the active outgoing quantity of an item until a date, by summarizing
+#* the quantities of the item on all active sales orders (labeled with status
+#* 'Firm' or 'Planned') with an end date prior or equal to the specified date.
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to get the quantity of
+#* @param DAT The date up until which the outgoing quantity should be calculated
+#*
+#* @return An integer value, the outgoing quantity of the item
+#*!
+Funprog GET_ITEM_OUT_QUANTITY_UNTIL_DATE(SITE, ITEM, DAT)
+Value Char SITE
+Value Char ITEM
+Value Date DAT
+#-
+Local Decimal QTY
+
+  Local File ORDERS [YORS]
+  Filter [YORS] Where ITMREF = ITEM and STOFCY = SITE and WIPTYP = 1 and (WIPSTA = 1 or WIPSTA = 2) and ENDDAT <= DAT
+&               Order By ENDDAT
+
+  For [YORS]
+    QTY += [YORS]RMNEXTQTY
+  Next
+
+End QTY
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the total incoming quantity of an item, by summarizing the quantities
+#* of the item on all active purchase orders (labeled with status 'Firm' or 'Planned').
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to get the quantity of
+#*
+#* @return An integer value, the total incoming quantity of the item
+#*!
+Funprog GET_ITEM_IN_QUANTITY(SITE, ITEM)
+Value Char SITE
+Value Char ITEM
+
+Local Decimal QTY
+
+  Local File ORDERS [YORS]
+  Filter [YORS] Where ITMREF = ITEM and STOFCY = SITE and WIPTYP = 1 and (WIPSTA = 1 or WIPSTA = 2)
+&               Order By ENDDAT
+
+  For [YORS]
+    QTY += [YORS]RMNEXTQTY
+  Next
+
+End QTY
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the active incoming quantity of an item until a date, by summarizing
+#* the quantities of the item on all active purchase orders (labeled with status
+#* 'Firm' or 'Planned') with an end date prior or equal to the specified date.
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to get the quantity of
+#* @param DAT The date up until which the incoming quantity should be calculated
+#*
+#* @return An integer value, the incoming quantity of the item
+#*!
+Funprog GET_ITEM_IN_QUANTITY_UNTIL_DATE(SITE, ITEM, DAT)
+Value Char SITE
+Value Char ITEM
+Value Date DAT
+
+Local Decimal QTY
+
+  Local File ORDERS [YORS]
+  Filter [YORS] Where ITMREF = ITEM and STOFCY = SITE and WIPTYP = 2 and (WIPSTA = 1 or WIPSTA = 2) and ENDDAT <= DAT
+&               Order By ENDDAT
+
+  For [YORS]
+    QTY += [YORS]RMNEXTQTY
+  Next
+
+End QTY
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the total stock quantity of an item.
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to get the quantity of
+#* @param ITEM_STATUS If not null, the function only returns the items stock quantity with this status
+#*
+#* @return An integer value, the stock quantity of the item
+#*!
+Funprog GET_ITEM_STOCK_QUANTITY(SITE, ITEM, ITEM_STATUS)
+Value Char SITE
+Value Char ITEM
+Value Char ITEM_STATUS
+
+Local Decimal QTY
+
+  Local File STOCK [YSTO]
+
+  If ITEM_STATUS <> ""
+    Filter [YSTO] Where ITMREF = ITEM and STOFCY = SITE and STA = ITEM_STATUS
+  Else
+    Filter [YSTO] Where ITMREF = ITEM and STOFCY = SITE
+  Endif
+
+  For [YSTO]
+    [L]QTY += [YSTO]QTYSTU
+  Next
+
+End [L]QTY
+

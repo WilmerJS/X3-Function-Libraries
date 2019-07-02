@@ -1,0 +1,105 @@
+#<AdxTL>@(#)0.0.0.0 $Revision$
+# ==================================================================================== #
+#
+#   AKTIEBOLAGET SYSTEMSTÖD SVERIGE
+#
+#     Wilmer Jensen Sternehäll
+#     wilmer.sternehall@systemstod.se
+#
+#   ---
+#     Name:
+#       X_GFILE
+#     Description:
+#       A script containing functions for handling 'GFILES'.
+#
+#       GFILES are indexes of array string variables pointing to files in the X3
+#       Storage Area. These variables enable access to specified files from anywhere.
+#       They are identified by a unique index, which is also the array index of which
+#       they are stored in.
+#
+#
+#   ---
+#     Contributors:
+#       Wilmer Jensen Sternehäll  (WIST)
+#
+#
+#
+#
+#     Copyright @ 2018 - 2019, Aktiebolaget Systemstöd Sverige
+#
+#
+# ==================================================================================== #
+
+
+##########################################################################################
+# < WIST >
+#**
+#* Declares five global array variables, ready to be assigned values pointing to specific files using the ADD_GFILE function.
+#*
+#* This function is automatically handled, and does not need to be called by the developer.
+#*
+#*!
+  Subprog DECLARE_GFILEVARS()
+    Global Char GFILENAM(250)(1..20)
+    Global Char GFILEDIR(20)(1..20)
+    Global Char GFILEEXT(10)(1..20)
+    Global Char GFILELOC(250)(1..20)
+    Global Char GFILEPATH(250)(1..20)
+  End
+
+##########################################################################################
+# < WIST >
+#**
+#* Kills global file variables
+#*
+#*!
+  Subprog KILL_GFILEVARS()
+    Kill GFILENAM, GFILEDIR, GFILEEXT, GFILELOC, GFILEPATH
+  End
+
+##########################################################################################
+# < WIST >
+#**
+#* Assigns an index of the GFILE variables to point to a specific file, so it can be accessed with ease from anywhere.
+#*
+#* @param FILEDIR Directory for the file
+#* @param FILENAM Name of the file
+#* @param FILEEXT Extension of the file
+#*
+#* @return The index position of the files data in the GFILE array variables.
+#*!
+  Funprog ADD_GFILE(FILEDIR, FILENAM, FILEEXT)
+    Value Char FILEDIR
+    Value Char FILENAM
+    Value Char FILEEXT
+
+    Local Integer INDEX
+
+    If dim(GFILENAM) < 0
+      Call DECLARE_GFILEVARS()
+    Endif
+
+    INDEX = find("", GFILENAM)
+
+    GFILENAM(INDEX)  = FILENAM
+    GFILEDIR(INDEX)  = FILEDIR
+    GFILEEXT(INDEX)  = FILEEXT
+    GFILELOC(INDEX)  = "[" + FILEDIR + "]/" + FILENAM + "." + FILEEXT
+    GFILEPATH(INDEX) = filpath(FILEDIR, FILENAM, FILEEXT)
+
+  End INDEX
+
+##########################################################################################
+# < WIST >
+#**
+#* Nulls an index of the GFILE variables, so they can be assigned with another file.
+#*
+#* @param INDEX Index of the GFILE variables to be erased.
+#*
+#*!
+  Subprog REMOVE_GFILE(INDEX)
+    Value Integer INDEX
+
+    Raz GFILENAM(INDEX), GFILEDIR(INDEX), GFILEEXT(INDEX), GFILELOC(INDEX), GFILEPATH(INDEX)
+  End
+
