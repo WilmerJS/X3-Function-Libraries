@@ -263,9 +263,7 @@ Local Integer STAT : STAT = 0
   TMPPATH = filpath("TMP", "tmp_" + uuid$, func GET_FILE_EXTENSION(FILEPATH))
 
   Call MOVE(FILEPATH, TMPPATH, STAT) From ORDSYS                    # change file name to a temporary one to avoid download error
-
   Call COPCLI(TMPPATH, FILEPATH, STAT) From ORDSYS                  # change back to original file name while downloading
-
   Call MOVE(TMPPATH,FILEPATH, STAT) From ORDSYS
 
   If STAT =! 0
