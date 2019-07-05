@@ -1,0 +1,55 @@
+# ================================================================================================ #
+#
+#   AKTIEBOLAGET SYSTEMSTÖD SVERIGE
+#
+#     Wilmer Jensen Sternehäll
+#     wilmer.sternehall@systemstod.se
+#
+#   ---
+#     Name:
+#       XSS_BPARTNERS
+#     Description:
+#       A Systemstöd function library script containing custom Sage X3 functions developed
+#       in a general, comprehensive manner meant to fit any Sage X3 installation.
+#
+#       The functions in this file are related to BUSINESS PARTNERS.
+#
+#
+#
+#   Copyright @ 2018 - 2020, Aktiebolaget Systemstöd Sverige
+#
+#
+# ================================================================================================ #
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets a customers default delivery contact, that by default is assigned to the delivery address on an order.
+#*
+#* @param CUSTOMER The customer of which the default delivery contact should be fetched from
+#*
+#* @return A string value, the default delivery contact
+#*
+#*!
+Funprog GET_CUSTOMER_DEFAULT_DELIVERY_CONTACT(CUSTOMER)
+Value Char CUSTOMER
+
+  Local File BPCUSTOMER [YBPC]
+  Local File CONTACT [YCNT]
+
+  Local Char CONTACT(50)
+
+  Read [YBPC]BPC0 = CUSTOMER
+  Filter [YCNT] Where BPATYP = 1 and BPANUM = CUSTOMER and BPAADD = [YBPC]BPDADD
+&               Order By CCNCRM Asc
+
+  If rowcount([YCNT]) > 0
+    Read [YCNT] First
+  Else
+    Filter [YCNT]
+    Read [YCNT]CNT0 = 1 ; CUSTOMER ; [YBPC]CNTNAM
+  Endif
+
+  CONTACT = [YCNT]CCNCRM
+
+End CONTACT
