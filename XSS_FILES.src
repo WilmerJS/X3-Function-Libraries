@@ -27,7 +27,7 @@
 ##############################################################################################################
 # < WIST >
 #**
-#* Gets the file names of all the files in the given directory.
+#* Gets the file names of all files in the given directory.
 #*
 #* @param DIRECTORY The directory of the files to be returned.
 #* @param FILE_LIST The array variable to be filled with the found file names. This is a return value.
@@ -80,8 +80,8 @@ End FILE_COUNT
 #* and then moved to the specified directory.
 #*
 #* @param DIRECTORY The directory to which the file will be moved after it is uploaded
-#* @param OUTFILEDEST OUTPUT: The filepath of the file after function has been completed
-#* @param VARSTAT OUTPUT: Status variable - 1 = No file was selected ; 2 = Upload failed ; -1 = File transfer failed, file is located in TMP
+#*
+#* @return A string value, the filepath of the file after the upload and transfer has been completed
 #*
 #*!
 Funprog OPEN_UPLOAD_FILE_TO(DIRECTORY)

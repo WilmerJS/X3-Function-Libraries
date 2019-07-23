@@ -24,7 +24,8 @@
 ##############################################################################################################
 # < WIST >
 #**
-#* Gets a customers default delivery contact, that by default is assigned to the delivery address on an order.
+#* Gets a customers default delivery contact. This is the contact that automatically is assigned to the 
+#* delivery address on an order.
 #*
 #* @param CUSTOMER The customer of which the default delivery contact should be fetched from
 #*
