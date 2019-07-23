@@ -69,7 +69,7 @@ Value Date DAT
 
   For [F:YSOQ]
 
-    [L]QTY += ([F:YSOQ]QTYSTU - [F:YSOQ]PREQTYSTU - [F:YSOQ]ODLQTYSTU - [F:YSOQ]DLVQTYSTU)
+    [L]QTY += [F:YSOQ]QTYSTU - ([F:YSOQ]PREQTYSTU + [F:YSOQ]ODLQTYSTU + [F:YSOQ]DLVQTYSTU)
 
   Next
 
@@ -93,7 +93,7 @@ Value Char LOC_TYPE
 Value Char MIN_LOC
 
   Local File STOLOC [YSL]
-  Filter [YSL] Where STOFCY = SITE and LOCTYP = LOC_TYPE and OCPCOD = 1
+  Filter [YSL] Where STOFCY = SITE and LOCTYP = LOC_TYPE and OCPCOD = 1 and LOC > MIN_LOC
 &              Order By LOC Asc
 
   Read [YSL] First
@@ -108,15 +108,17 @@ End [YSL]LOC
 #*
 #* @param SITE The relevant site
 #* @param LOC_TYPE The location type of which to search for a location
+#* @param MIN_LOC If this value is not null, the function returns the first location alphanumerically following this one
 #*
 #* @return A string value, the first location
 #*!
-Funprog GET_LOC_FROM_TYPE(SITE, LOC_TYPE)
+Funprog GET_LOC_FROM_TYPE(SITE, LOC_TYPE, MIN_LOC)
 Value Char SITE
 Value Char LOC_TYPE
+Value Char MIN_LOC
 
   Local File STOLOC [YSL]
-  Filter [YSL] Where STOFCY = SITE and LOCTYP = LOC_TYPE
+  Filter [YSL] Where STOFCY = SITE and LOCTYP = LOC_TYPE and LOC > MIN_LOC
 &              Order By LOC Asc
 
   Read [YSL] First
@@ -153,7 +155,7 @@ End COUNT
 ##############################################################################################################
 # < WIST >
 #**
-#* Gets the quantity of an item on a location with detailed allocations.
+#* Gets the detailedly allocated quantity of an item on a location.
 #*
 #* @param SITE The relevant site
 #* @param LOCATION The location on which to count the item
@@ -258,7 +260,7 @@ Value Char ITEM
 Local Decimal QTY
 
   Local File ORDERS [YORS]
-  Filter [YORS] Where ITMREF = ITEM and STOFCY = SITE and WIPTYP = 1 and (WIPSTA = 1 or WIPSTA = 2)
+  Filter [YORS] Where ITMREF = ITEM and STOFCY = SITE and WIPTYP = 2 and (WIPSTA = 1 or WIPSTA = 2)
 &               Order By ENDDAT
 
   For [YORS]
