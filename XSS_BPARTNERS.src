@@ -1,23 +1,23 @@
 #<AdxTL>@(#)0.0.0.0 $Revision$
 # ================================================================================================ #
 #
-#   AKTIEBOLAGET SYSTEMSTÃ–D SVERIGE
+#   AKTIEBOLAGET SYSTEMSTÖD SVERIGE
 #
-#     Wilmer Jensen SternehÃ¤ll
+#     Wilmer Jensen Sternehäll
 #     wilmer.sternehall@systemstod.se
 #
 #   ---
 #     Name:
 #       XSS_BPARTNERS
 #     Description:
-#       A SystemstÃ¶d function library script containing custom Sage X3 functions developed
+#       A Systemstöd function library script containing custom Sage X3 functions developed
 #       in a general, comprehensive manner meant to fit any Sage X3 installation.
 #
 #       The functions in this file are related to BUSINESS PARTNERS.
 #
 #
 #
-#   Copyright @ 2018 - 2020, Aktiebolaget SystemstÃ¶d Sverige
+#   Copyright @ 2018 - 2020, Aktiebolaget Systemstöd Sverige
 #
 #
 # ================================================================================================ #
@@ -25,8 +25,7 @@
 ##############################################################################################################
 # < WIST >
 #**
-#* Gets a customers default delivery contact. This is the contact that automatically is assigned to the 
-#* delivery address on an order.
+#* Gets a customers default delivery contact, that by default is assigned to the delivery address on an order.
 #*
 #* @param CUSTOMER The customer of which the default delivery contact should be fetched from
 #*

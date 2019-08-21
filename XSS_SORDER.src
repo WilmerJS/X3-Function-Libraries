@@ -1,0 +1,135 @@
+#<AdxTL>@(#)0.0.0.0 $Revision$
+# ================================================================================================ #
+#
+#   AKTIEBOLAGET SYSTEMSTÖD SVERIGE
+#
+#     Wilmer Jensen Sternehäll
+#     wilmer.sternehall@systemstod.se
+#
+#   ---
+#     Name:
+#       XSS_SORDER
+#     Description:
+#       A Systemstöd function library script containing custom Sage X3 functions developed
+#       in a general, comprehensive manner meant to fit any Sage X3 installation.
+#
+#       The functions in this file are related to SALES ORDER MANAGEMENT.
+#
+#
+#
+#   Copyright @ 2018 - 2020, Aktiebolaget Systemstöd Sverige
+#
+#
+# ================================================================================================ #
+
+##############################################################################################################
+# < WIST >
+#**
+#* Checks if an order line will be deliverable at the specified date, by calculating if the
+#* product quantity in stock will be enough.
+#* <pre></pre>
+#*
+#* This functions takes into account lines with a requested delivery date on XDATE from all orders,
+#* and prioritizes the ones with a <b>lower order number</b>.
+#* <pre></pre>
+#*
+#* @param ORDER_NUM Order number
+#* @param LINE Order line
+#* @param SEQUENCE Order line sequence
+#* @param XDATE Date to check if line can be delivered on
+#*
+#* @return An integer value
+#* <pre>
+#* 1 = line is deliverable
+#* 0 = line is not deliverable
+#* </pre>
+#*!
+Funprog IS_ORDER_LINE_DELIVERABLE_AT_DATE(ORDER_NUM, LINE, SEQUENCE, XDATE)
+Value Char ORDER_NUM
+Value Integer LINE
+Value Integer SEQUENCE
+Value Date XDATE
+
+  If clalev([YSOQ])=0 : Local File SORDERQ [YSOQ] : Endif
+  If clalev([ZSOQ])=0 : Local File SORDERQ [ZSOQ] : Endif
+
+  Read [YSOQ]SOQ0 = ORDER_NUM ; LINE ; SEQUENCE
+
+  Local Decimal QTY_IN_STOCK
+  Local Decimal QTY_ALREADY_TAKEN
+
+  QTY_IN_STOCK = func XSS_STOCK.GET_ITEM_QTY_IN_STOCK_AT_DATE([YSOQ]STOFCY, [YSOQ]ITMREF, XDATE)
+
+  # End function and return false if there is no quantity in stock on this date
+  If QTY_IN_STOCK <= 0
+    End 0
+  Endif
+
+  Filter [ZSOQ] Where find([ZSOQ]SOQSTA, 1, 2)
+&                 and [ZSOQ]DEMDLVDAT = XDATE
+&                 and [ZSOQ]ITMREF = [YSOQ]ITMREF
+&                 and [ZSOQ]SOHNUM < [YSOQ]SOHNUM
+
+  For [ZSOQ]
+    QTY_ALREADY_TAKEN += [ZSOQ]QTYSTU
+  Next
+
+  If (QTY_IN_STOCK - QTY_ALREADY_TAKEN) < [YSOQ]QTYSTU
+    End 0
+  Else
+    End 1
+  Endif
+
+End
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the first date an order line can be delivered, by returning the first date that the expected stock
+#* quantity can satisfy this order line.
+#* <pre></pre>
+#*
+#* This functions takes into account lines with the same requested delivery date from all orders,
+#* and prioritizes the ones with a <b>lower order number</b>.
+#* <pre></pre>
+#*
+#* @param ORDER_NUM Order number
+#* @param LINE Order line
+#* @param SEQUENCE Order line sequence
+#*
+#* @return The first expected delivery date
+#*!
+Funprog GET_ORDER_LINE_DELIVERABLE_DATE(ORDER_NUM, LINE, SEQUENCE)
+Value Char ORDER_NUM
+Value Integer LINE
+Value Integer SEQUENCE
+
+Local Date NULL_DATE
+
+  If clalev([YSOQ])=0 : Local File SORDERQ [YSOQ] : Endif
+  If clalev([ZSOQ])=0 : Local File SORDERQ [ZSOQ] : Endif
+
+  Read [YSOQ]SOQ0 = ORDER_NUM ; LINE ; SEQUENCE
+
+  If (func IS_ORDER_LINE_DELIVERABLE_AT_DATE(ORDER_NUM, LINE, SEQUENCE, [YSOQ]DEMDLVDAT))
+    End [YSOQ]DEMDLVDAT   # RETURN
+  Endif
+
+  # start searching for receipts after this date
+  Local Date NEXT_RECEIPT_DATE
+  NEXT_RECEIPT_DATE = [YSOQ]DEMDLVDAT
+
+  While NEXT_RECEIPT_DATE <> NULL_DATE
+
+    NEXT_RECEIPT_DATE = func XSS_PORDER.GET_NEXT_ORDER_RECEIPT_DATE_BY_ITEM([YSOQ]ITMREF, NEXT_RECEIPT_DATE + 1)
+
+    If NEXT_RECEIPT_DATE <> NULL_DATE  # extra check here because we do not want to call this function with a null date
+      If (func IS_ORDER_LINE_DELIVERABLE_AT_DATE(ORDER_NUM, LINE, SEQUENCE, NEXT_RECEIPT_DATE))
+        End NEXT_RECEIPT_DATE   # RETURN
+      Endif
+    Endif
+
+  Wend
+
+# if compiler reaches this end statement, no date was found and we return null date
+End NULL_DATE

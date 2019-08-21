@@ -1,23 +1,23 @@
 #<AdxTL>@(#)0.0.0.0 $Revision$
 # ================================================================================================ #
 #
-#   AKTIEBOLAGET SYSTEMSTÃ–D SVERIGE
+#   AKTIEBOLAGET SYSTEMSTÖD SVERIGE
 #
-#     Wilmer Jensen SternehÃ¤ll
+#     Wilmer Jensen Sternehäll
 #     wilmer.sternehall@systemstod.se
 #
 #   ---
 #     Name:
 #       XSS_STOCK
 #     Description:
-#       A SystemstÃ¶d function library script containing custom Sage X3 functions developed
+#       A Systemstöd function library script containing custom Sage X3 functions developed
 #       in a general, comprehensive manner meant to fit any Sage X3 installation.
 #
 #       The functions in this file are related to STOCK MANAGEMENT.
 #
 #
 #
-#   Copyright @ 2018 - 2020, Aktiebolaget SystemstÃ¶d Sverige
+#   Copyright @ 2018 - 2020, Aktiebolaget Systemstöd Sverige
 #
 #
 # ================================================================================================ #
@@ -30,7 +30,11 @@
 #* @param SITE The relevant site
 #* @param ITEM The item to look for.
 #*
-#* @return An integer value, 1 if the item is in stock and 0 if it is not.
+#* @return An integer value
+#* <pre>
+#* 1 = item is in stock
+#* 0 = item is not in stock
+#* </pre>
 #*!
 Funprog IS_ITEM_IN_STOCK(SITE, ITEM)
 Value Char SITE
@@ -44,6 +48,69 @@ Value Char ITEM
   Endif
 
 End 0
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the current total quantity in stock of an item
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to get the quantity of
+#* @param ITEM_STATUS If not null, the function only returns the items stock quantity with this status
+#*
+#* @return An integer value, the stock quantity of the item
+#*!
+Funprog GET_ITEM_QTY_IN_STOCK(SITE, ITEM, ITEM_STATUS)
+Value Char SITE
+Value Char ITEM
+Value Char ITEM_STATUS
+
+Local Decimal QTY
+
+  Local File STOCK [YSTO]
+
+  If ITEM_STATUS <> ""
+    Filter [YSTO] Where ITMREF = ITEM and STOFCY = SITE and STA = ITEM_STATUS
+  Else
+    Filter [YSTO] Where ITMREF = ITEM and STOFCY = SITE
+  Endif
+
+  For [YSTO]
+    [L]QTY += [YSTO]QTYSTU
+  Next
+
+End [L]QTY
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the expected stock quantity of an item at a certain date, <b>including</b> the addition and
+#* subtraction of the quantities of all purchase and sales order scheduled that day.
+#*
+#* It is calculated by the following formula:
+#* <pre></pre>
+#*
+#* <code>Stock Quantity - Outgoing Items (Until date) + Incoming Items (Until date)</code>
+#* <pre></pre>
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to deliver.
+#* @param XDATE The date the the item should be delivered on or before.
+#*
+#* @return An integer value, the available quantity
+#*!
+Funprog GET_ITEM_QTY_IN_STOCK_AT_DATE(SITE, ITEM, XDATE)
+Value Char SITE
+Value Char ITEM
+Value Date XDATE
+#-
+Local Decimal STOCK_QTY
+
+  STOCK_QTY = func GET_ITEM_QTY_IN_STOCK(ITEM, SITE, "A")
+&           - func GET_ITEM_OUT_QUANTITY_UNTIL_DATE(ITEM, SITE, XDATE)
+&           + func GET_ITEM_IN_QUANTITY_UNTIL_DATE(ITEM, SITE, XDATE)
+
+End STOCK_QTY
 
 ##############################################################################################################
 # < WIST >
@@ -69,7 +136,7 @@ Value Date DAT
 
   For [F:YSOQ]
 
-    [L]QTY += [F:YSOQ]QTYSTU - ([F:YSOQ]PREQTYSTU + [F:YSOQ]ODLQTYSTU + [F:YSOQ]DLVQTYSTU)
+    [L]QTY += ([F:YSOQ]QTYSTU - [F:YSOQ]PREQTYSTU - [F:YSOQ]ODLQTYSTU - [F:YSOQ]DLVQTYSTU)
 
   Next
 
@@ -93,7 +160,7 @@ Value Char LOC_TYPE
 Value Char MIN_LOC
 
   Local File STOLOC [YSL]
-  Filter [YSL] Where STOFCY = SITE and LOCTYP = LOC_TYPE and OCPCOD = 1 and LOC > MIN_LOC
+  Filter [YSL] Where STOFCY = SITE and LOCTYP = LOC_TYPE and OCPCOD = 1
 &              Order By LOC Asc
 
   Read [YSL] First
@@ -108,17 +175,15 @@ End [YSL]LOC
 #*
 #* @param SITE The relevant site
 #* @param LOC_TYPE The location type of which to search for a location
-#* @param MIN_LOC If this value is not null, the function returns the first location alphanumerically following this one
 #*
 #* @return A string value, the first location
 #*!
-Funprog GET_LOC_FROM_TYPE(SITE, LOC_TYPE, MIN_LOC)
+Funprog GET_LOC_FROM_TYPE(SITE, LOC_TYPE)
 Value Char SITE
 Value Char LOC_TYPE
-Value Char MIN_LOC
 
   Local File STOLOC [YSL]
-  Filter [YSL] Where STOFCY = SITE and LOCTYP = LOC_TYPE and LOC > MIN_LOC
+  Filter [YSL] Where STOFCY = SITE and LOCTYP = LOC_TYPE
 &              Order By LOC Asc
 
   Read [YSL] First
@@ -136,7 +201,7 @@ End [YSL]LOC
 #*
 #* @return An integer value, the item quantity
 #*!
-Funprog GET_LOC_ITM_QTY(SITE, LOCATION, ITEM)
+Funprog GET_LOC_ITEM_QTY(SITE, LOCATION, ITEM)
 Value Char SITE
 Value Char LOCATION
 Value Char ITEM
@@ -155,26 +220,39 @@ End COUNT
 ##############################################################################################################
 # < WIST >
 #**
-#* Gets the detailedly allocated quantity of an item on a location.
+#* Gets the quantity of an item on a location with the specified allocation type. Allocation types:
+#*
+#* <pre>
+#* 1 - Global
+#* 2 - Detailed
+#* 3 - Inbound transfer
+#* 4 - Shortages/Detailed
+#* 5 - Shortages/Global
+#* 6 - Outbound transfer
+#* </pre>
 #*
 #* @param SITE The relevant site
 #* @param LOCATION The location on which to count the item
 #* @param ITEM The item to get the quantity of
+#* @param ALLOCATION_TYPE The allocation type of which to return items with. See all possible types in the
+#*                        function description above
 #*
-#* @return An integer value, the items detailed allocation quantity
+#* @return An integer value, the item quantity with the specified allocation type
 #*!
 
-Funprog GET_LOC_ITM_QTY_DETAILED_ALLOC(SITE, LOCATION, ITEM)
+
+Funprog GET_LOC_ITEM_QTY_BY_ALLOC(SITE, LOCATION, ITEM, ALLOCATION_TYPE)
 Value Char SITE
 Value Char LOCATION
 Value Char ITEM
+Value Integer ALLOCATION_TYPE
 
   Local File STOCK  [YSTO]
   Local File STOALL [YSTA]
 
   Link [YSTA] With [YSTO]STO0 ~= [YSTA]STOFCY ; [YSTA]STOCOU
 &             As   [YLNK]
-&             Where [YSTA]STOFCY = SITE and [YSTO]LOC = LOCATION and [YSTA]ITMREF = ITEM and [YSTA]ALLTYP = 2
+&             Where [YSTA]STOFCY = SITE and [YSTO]LOC = LOCATION and [YSTA]ITMREF = ITEM and [YSTA]ALLTYP = ALLOCATION_TYPE
 &             Order By [YSTO]LOC
 
   Local Decimal COUNT
@@ -260,7 +338,7 @@ Value Char ITEM
 Local Decimal QTY
 
   Local File ORDERS [YORS]
-  Filter [YORS] Where ITMREF = ITEM and STOFCY = SITE and WIPTYP = 2 and (WIPSTA = 1 or WIPSTA = 2)
+  Filter [YORS] Where ITMREF = ITEM and STOFCY = SITE and WIPTYP = 1 and (WIPSTA = 1 or WIPSTA = 2)
 &               Order By ENDDAT
 
   For [YORS]
@@ -298,36 +376,4 @@ Local Decimal QTY
   Next
 
 End QTY
-
-##############################################################################################################
-# < WIST >
-#**
-#* Gets the total stock quantity of an item.
-#*
-#* @param SITE The relevant site
-#* @param ITEM The item to get the quantity of
-#* @param ITEM_STATUS If not null, the function only returns the items stock quantity with this status
-#*
-#* @return An integer value, the stock quantity of the item
-#*!
-Funprog GET_ITEM_STOCK_QUANTITY(SITE, ITEM, ITEM_STATUS)
-Value Char SITE
-Value Char ITEM
-Value Char ITEM_STATUS
-
-Local Decimal QTY
-
-  Local File STOCK [YSTO]
-
-  If ITEM_STATUS <> ""
-    Filter [YSTO] Where ITMREF = ITEM and STOFCY = SITE and STA = ITEM_STATUS
-  Else
-    Filter [YSTO] Where ITMREF = ITEM and STOFCY = SITE
-  Endif
-
-  For [YSTO]
-    [L]QTY += [YSTO]QTYSTU
-  Next
-
-End [L]QTY
 

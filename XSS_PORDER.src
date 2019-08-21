@@ -1,0 +1,61 @@
+#<AdxTL>@(#)0.0.0.0 $Revision$
+# ================================================================================================ #
+#
+#   AKTIEBOLAGET SYSTEMSTÖD SVERIGE
+#
+#     Wilmer Jensen Sternehäll
+#     wilmer.sternehall@systemstod.se
+#
+#   ---
+#     Name:
+#       XSS_PORDER
+#     Description:
+#       A Systemstöd function library script containing custom Sage X3 functions developed
+#       in a general, comprehensive manner meant to fit any Sage X3 installation.
+#
+#       The functions in this file are related to PURCHASE ORDER MANAGEMENT.
+#
+#
+#
+#   Copyright @ 2018 - 2020, Aktiebolaget Systemstöd Sverige
+#
+#
+# ================================================================================================ #
+
+##############################################################################################################
+# < WIST >
+#**
+#* Returns the date of the first upcoming receipt of an item, that is expected to be received
+#* on or after FROM_DATE.
+#*
+#* @param ITEM Order number
+#* @param FROM_DATE Order line
+#*
+#* @return Date of next receipt
+#*!
+Funprog GET_NEXT_ORDER_RECEIPT_DATE_BY_ITEM(ITEM, FROM_DATE)
+Value Char ITEM
+Value Date FROM_DATE
+
+Local Date RETURN_DATE
+
+  Local File PORDER  [YPOH]
+  Local File PORDERQ [YPOQ]
+
+  # should we include "late" lines (LINSTA = 2)?
+  # should we use LINCLEFLG instead of LINSTA?
+  Link [YPOQ] With [YPOH]POH0 ~= [YPOQ]POHNUM As   [YLNK]
+&             Where [YPOQ]ITMREF = ITEM
+&               and [YPOH]OCNDAT <> [00/00/0000]
+&               and [YPOQ]EXTRCPDAT >= FROM_DATE
+&               and find([YPOQ]LINSTA, 1, 2)
+&             Order By [YPOQ]EXTRCPDAT Asc
+
+  Read [YLNK] First
+
+  If !fstat
+    RETURN_DATE = [YPOQ]EXTRCPDAT
+  Endif
+
+# return null date if no purchase order was found
+End RETURN_DATE

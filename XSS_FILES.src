@@ -1,33 +1,31 @@
 #<AdxTL>@(#)0.0.0.0 $Revision$
 # ================================================================================================ #
 #
-#   AKTIEBOLAGET SYSTEMSTÃ–D SVERIGE
+#   AKTIEBOLAGET SYSTEMSTÖD SVERIGE
 #
-#     Wilmer Jensen SternehÃ¤ll
+#     Wilmer Jensen Sternehäll
 #     wilmer.sternehall@systemstod.se
 #
 #   ---
 #     Name:
 #       XSS_FILES
 #     Description:
-#       A SystemstÃ¶d function library script containing custom Sage X3 functions developed
+#       A Systemstöd function library script containing custom Sage X3 functions developed
 #       in a general, comprehensive manner meant to fit any Sage X3 installation.
 #
 #       The functions in this file are related to FILE MANAGEMENT.
 #
 #
 #
-#   Copyright @ 2018 - 2020, Aktiebolaget SystemstÃ¶d Sverige
+#   Copyright @ 2018 - 2020, Aktiebolaget Systemstöd Sverige
 #
 #
 # ================================================================================================ #
 
-#test
-
 ##############################################################################################################
 # < WIST >
 #**
-#* Gets the file names of all files in the given directory.
+#* Gets the file names of all the files in the given directory.
 #*
 #* @param DIRECTORY The directory of the files to be returned.
 #* @param FILE_LIST The array variable to be filled with the found file names. This is a return value.
@@ -53,7 +51,7 @@ Local Integer I
   For I = 1 To FILE_AMOUNT
 
     If FILE_COUNT > dim(FILE_LIST) - 1
-      Errbox "Array variable cannot store all the files: too few dimensions", "Please contact SystemstÃ¶d"
+      Errbox "Array variable cannot store all the files: too few dimensions", "Please contact Systemstöd"
       End FILE_COUNT
     Endif
 
@@ -80,9 +78,6 @@ End FILE_COUNT
 #* and then moved to the specified directory.
 #*
 #* @param DIRECTORY The directory to which the file will be moved after it is uploaded
-#*
-#* @return A string value, the filepath of the file after the upload and transfer has been completed
-#*
 #*!
 Funprog OPEN_UPLOAD_FILE_TO(DIRECTORY)
 Value Char DIRECTORY
@@ -190,13 +185,13 @@ Value Tinyint SHOW_LOG
   Call OUVRE_TRACE("File import") From LECFIC           # OPEN LOG FILE
 
   Call TEMPON("Import in progress") From GESECRAN
-  Call IMPORTSIL(TEMPLATE, FILE_PATH) From GIMPOBJ        # IMPORT
+  Call IMPORTSIL(TEMPLATE, FILE_PATH) From GIMPOBJ      # IMPORT
   Call TEMPOFF From GESECRAN
 
   Call FERME_TRACE From LECFIC                          # CLOSE LOG FILE
 
   If SHOW_LOG
-    Call LEC_TRACE From LECFIC                            # DISPLAY LOG
+    Call LEC_TRACE From LECFIC                          # DISPLAY LOG
   Endif
 
 End
@@ -264,8 +259,8 @@ Local Integer STAT : STAT = 0
 
   TMPPATH = filpath("TMP", "tmp_" + uuid$, func GET_FILE_EXTENSION(FILEPATH))
 
-  Call MOVE(FILEPATH, TMPPATH, STAT) From ORDSYS                    # change file name to a temporary one to avoid download error
-  Call COPCLI(TMPPATH, FILEPATH, STAT) From ORDSYS                  # change back to original file name while downloading
+  Call MOVE(FILEPATH, TMPPATH, STAT) From ORDSYS      # change file name to a temporary one to avoid download error
+  Call COPCLI(TMPPATH, FILEPATH, STAT) From ORDSYS    # change back to original file name while downloading
   Call MOVE(TMPPATH,FILEPATH, STAT) From ORDSYS
 
   If STAT =! 0
@@ -288,4 +283,3 @@ Local Integer ERRCODE
 
   ERRCODE = Delfile(FILEPATH)
 End ERRCODE
-
