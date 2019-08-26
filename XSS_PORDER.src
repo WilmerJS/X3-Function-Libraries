@@ -1,23 +1,22 @@
-#<AdxTL>@(#)0.0.0.0 $Revision$
 # ================================================================================================ #
 #
-#   AKTIEBOLAGET SYSTEMSTÖD SVERIGE
+#   AKTIEBOLAGET SYSTEMSTÃ–D SVERIGE
 #
-#     Wilmer Jensen Sternehäll
+#     Wilmer Jensen SternehÃ¤ll
 #     wilmer.sternehall@systemstod.se
 #
 #   ---
 #     Name:
 #       XSS_PORDER
 #     Description:
-#       A Systemstöd function library script containing custom Sage X3 functions developed
+#       A SystemstÃ¶d function library script containing custom Sage X3 functions developed
 #       in a general, comprehensive manner meant to fit any Sage X3 installation.
 #
 #       The functions in this file are related to PURCHASE ORDER MANAGEMENT.
 #
 #
 #
-#   Copyright @ 2018 - 2020, Aktiebolaget Systemstöd Sverige
+#   Copyright @ 2018 - 2020, Aktiebolaget SystemstÃ¶d Sverige
 #
 #
 # ================================================================================================ #
@@ -25,15 +24,17 @@
 ##############################################################################################################
 # < WIST >
 #**
-#* Returns the date of the first upcoming receipt of an item, that is expected to be received
-#* on or after FROM_DATE.
+#* Returns the date of the first upcoming receipt of an item from a purchase order, that is expected
+#* to be received on or after FROM_DATE. Returns null if no purchase order was found.
 #*
+#* @param SITE
 #* @param ITEM Order number
 #* @param FROM_DATE Order line
 #*
-#* @return Date of next receipt
+#* @return A Date value, date of next receipt
 #*!
-Funprog GET_NEXT_ORDER_RECEIPT_DATE_BY_ITEM(ITEM, FROM_DATE)
+Funprog GET_NEXT_RECEIPT_DATE_BY_ITEM(SITE, ITEM, FROM_DATE)
+Value Char SITE
 Value Char ITEM
 Value Date FROM_DATE
 
@@ -42,13 +43,16 @@ Local Date RETURN_DATE
   Local File PORDER  [YPOH]
   Local File PORDERQ [YPOQ]
 
+  # TODO
   # should we include "late" lines (LINSTA = 2)?
   # should we use LINCLEFLG instead of LINSTA?
+  # should we use LINSTOFCY or STOFCY (from header)
   Link [YPOQ] With [YPOH]POH0 ~= [YPOQ]POHNUM As   [YLNK]
-&             Where [YPOQ]ITMREF = ITEM
+&             Where [YPOQ]PRHFCY = SITE
+&               and [YPOQ]ITMREF = ITEM
 &               and [YPOH]OCNDAT <> [00/00/0000]
 &               and [YPOQ]EXTRCPDAT >= FROM_DATE
-&               and find([YPOQ]LINSTA, 1, 2)
+&               and [YPOQ]LINSTA <> 3
 &             Order By [YPOQ]EXTRCPDAT Asc
 
   Read [YLNK] First
@@ -59,3 +63,46 @@ Local Date RETURN_DATE
 
 # return null date if no purchase order was found
 End RETURN_DATE
+
+##############################################################################################################
+# < WIST >
+#**
+#* Returns the date of the last upcoming receipt of an item from a purchase order,, that is expected
+#* to be received on or before UNTIL_DATE. Returns null if no purchase order was found.
+#*
+#* @param ITEM Order number
+#* @param FROM_DATE Order line
+#*
+#* @return A Date value, date of last receipt
+#*!
+Funprog GET_LAST_RECEIPT_DATE_BY_ITEM(SITE, ITEM, UNTIL_DATE)
+Value Char SITE
+Value Char ITEM
+Value Date UNTIL_DATE
+
+Local Date RETURN_DATE
+
+  Local File PORDER  [YPOH]
+  Local File PORDERQ [YPOQ]
+
+  # TODO
+  # should we include "late" lines (LINSTA = 2)?
+  # should we use LINCLEFLG instead of LINSTA?
+  # should we use LINSTOFCY or STOFCY (from header)
+  Link [YPOQ] With [YPOH]POH0 ~= [YPOQ]POHNUM As   [YLNK]
+&             Where [YPOQ]PRHFCY = SITE
+&               and [YPOQ]ITMREF = ITEM
+&               and [YPOH]OCNDAT <> [00/00/0000]
+&               and [YPOQ]EXTRCPDAT <= UNTIL_DATE
+&               and [YPOQ]LINSTA <> 3
+&             Order By [YPOQ]EXTRCPDAT Desc
+
+  Read [YLNK] First
+
+  If !fstat
+    RETURN_DATE = [YPOQ]EXTRCPDAT
+  Endif
+
+# return null date if no purchase order was found
+End RETURN_DATE
+

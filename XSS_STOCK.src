@@ -1,23 +1,22 @@
-#<AdxTL>@(#)0.0.0.0 $Revision$
 # ================================================================================================ #
 #
-#   AKTIEBOLAGET SYSTEMSTÖD SVERIGE
+#   AKTIEBOLAGET SYSTEMSTÃ–D SVERIGE
 #
-#     Wilmer Jensen Sternehäll
+#     Wilmer Jensen SternehÃ¤ll
 #     wilmer.sternehall@systemstod.se
 #
 #   ---
 #     Name:
 #       XSS_STOCK
 #     Description:
-#       A Systemstöd function library script containing custom Sage X3 functions developed
+#       A SystemstÃ¶d function library script containing custom Sage X3 functions developed
 #       in a general, comprehensive manner meant to fit any Sage X3 installation.
 #
 #       The functions in this file are related to STOCK MANAGEMENT.
 #
 #
 #
-#   Copyright @ 2018 - 2020, Aktiebolaget Systemstöd Sverige
+#   Copyright @ 2018 - 2020, Aktiebolaget SystemstÃ¶d Sverige
 #
 #
 # ================================================================================================ #
@@ -84,6 +83,53 @@ End [L]QTY
 ##############################################################################################################
 # < WIST >
 #**
+#* Gets the theoretical lead time limit of an item. The theoretical lead time limit is whatever
+#* date is <b>further</b> in time, of:
+#*
+#* <pre>
+#* - Today + reorder lead time from product-site
+#* - The furthest in time expected receipt date of any acknowledged purchase order
+#* </pre>
+#*
+#* This means that the normal lead time date (from today) is returned, unless there is a purchase order with an
+#* acknowledged date subsequent to this. In that case, that acknowledged date is returned.
+#* <pre></pre>
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to return the theoretical lead time limit of
+#*
+#* @return A Date value, the date an item can be received
+#*
+#*!
+Funprog GET_THEORETICAL_LEADTIME_LIMIT(SITE, ITEM)
+Value Char SITE
+Value Char ITEM
+
+Local Date LEADTIME
+Local Date NULLDATE
+
+  Local File ITMFACILIT [YITF]
+  Local File PORDER  [YPOH]
+  Local File PORDERQ [YPOQ]
+
+  Read [YITF]ITF0 = ITEM ; SITE
+
+  Link [YPOQ] With [YPOH]POH0 ~= [YPOQ]POHNUM As   [YLNK]
+&             Where [YPOQ]ITMREF = ITEM
+&               and [YPOQ]PRHFCY = SITE
+&               and [YPOH]OCNDAT <> NULLDATE
+&               and [YPOQ]LINSTA <> 3
+&             Order By [YPOQ]EXTRCPDAT Desc
+
+  Read [YLNK] First
+
+  LEADTIME = max(date$ + [YITF]OFS, [YPOQ]EXTRCPDAT)
+
+End LEADTIME
+
+##############################################################################################################
+# < WIST >
+#**
 #* Gets the expected stock quantity of an item at a certain date, <b>including</b> the addition and
 #* subtraction of the quantities of all purchase and sales order scheduled that day.
 #*
@@ -111,6 +157,45 @@ Local Decimal STOCK_QTY
 &           + func GET_ITEM_IN_QUANTITY_UNTIL_DATE(ITEM, SITE, XDATE)
 
 End STOCK_QTY
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets an items availability at a date, decided by the priority given.
+#* <pre></pre>
+#* The priority is an order lines WIPNUM value in its corresponding line in the ORDERS table,
+#* and represents the chronological order in which all order lines are created. Any sales
+#* order lines created prior to PRIORITY (= higher priority) will deduct from the available
+#* quantity at XDATE, while lines created after PRIORITY (= lower priority) will be ignored.
+#* <pre></pre>
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to deliver
+#* @param XDATE The date to get the item quantity of
+#* @param PRIORITY The sales order line priority to base the search on
+#*
+#* @return An integer value, the available quantity
+#*!
+Funprog GET_ITEM_AVAILABILITY_AT_DATE_BY_PRIO(SITE, ITEM, XDATE, PRIORITY)
+Value Char SITE
+Value Char ITEM
+Value Date XDATE
+Value Char PRIORITY
+#-
+Local Decimal AVAILABLE_QTY
+
+  AVAILABLE_QTY = func GET_ITEM_QTY_IN_STOCK(SITE, ITEM, "A")
+&               - func GET_ITEM_OUT_QUANTITY_UNTIL_DATE_BY_PRIO(SITE, ITEM, XDATE, PRIORITY)
+&               + func GET_ITEM_IN_QUANTITY_UNTIL_DATE_ACKNOWLEDGED(SITE, ITEM, XDATE)
+
+
+ Infbox "AVAILABILITY AT DATE: " + num$(XDATE),
+&       "",
+&       "I LAGER IDAG: " + num$(func GET_ITEM_QTY_IN_STOCK(SITE, ITEM, "A")),
+&       "UTGÃ…ENDE (MED HÃ–GRE PRIO): " + num$(func GET_ITEM_OUT_QUANTITY_UNTIL_DATE_BY_PRIO(SITE, ITEM, XDATE, PRIORITY)),
+&       "INKOMMANDE: " + num$(func GET_ITEM_IN_QUANTITY_UNTIL_DATE_ACKNOWLEDGED(SITE, ITEM, XDATE))
+
+End AVAILABLE_QTY
 
 ##############################################################################################################
 # < WIST >
@@ -280,12 +365,13 @@ Value Char ITEM
 #-
 Local Decimal QTY
 
-  Local File ORDERS [YORS]
-  Filter [YORS] Where ITMREF = ITEM and STOFCY = SITE and WIPTYP = 1 and (WIPSTA = 1 or WIPSTA = 2)
-&               Order By ENDDAT
+  If clalev([ZSOQ])=0 : Local File SORDERQ [ZSOQ] : Endif
 
-  For [YORS]
-    QTY += [YORS]RMNEXTQTY
+  Filter [ZSOQ] Where find([ZSOQ]SOQSTA, 1, 2)
+&                 and [ZSOQ]ITMREF = ITEM
+
+  For [ZSOQ]
+    QTY += ([ZSOQ]QTYSTU - [ZSOQ]DLVQTYSTU)
   Next
 
 End QTY
@@ -310,12 +396,56 @@ Value Date DAT
 #-
 Local Decimal QTY
 
-  Local File ORDERS [YORS]
-  Filter [YORS] Where ITMREF = ITEM and STOFCY = SITE and WIPTYP = 1 and (WIPSTA = 1 or WIPSTA = 2) and ENDDAT <= DAT
-&               Order By ENDDAT
+  If clalev([ZSOQ])=0 : Local File SORDERQ [ZSOQ] : Endif
 
-  For [YORS]
-    QTY += [YORS]RMNEXTQTY
+  Filter [ZSOQ] Where find([ZSOQ]SOQSTA, 1, 2)
+&                 and [ZSOQ]ITMREF = ITEM
+&                 and [ZSOQ]EXTDLVDAT <= DAT
+
+  For [ZSOQ]
+    QTY += ([ZSOQ]QTYSTU - [ZSOQ]DLVQTYSTU)
+  Next
+
+End QTY
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the active outgoing quantity of an item with a priority higher than the parameter PRIORITY,
+#* until a date. This is done by summarizing the quantities of the item on all active sales orders
+#* (labeled with status 'Firm' or 'Planned') with an end date prior or equal to the specified date.
+#*
+#* <pre></pre>
+#* The priority is an order lines WIPNUM value in its corresponding line in the ORDERS table,
+#* and represents the chronological order in which all order lines are created. Any sales
+#* order lines created prior to PRIORITY (= higher priority) will deduct from the available
+#* quantity at XDATE, while lines created after PRIORITY (= lower priority) will be ignored.
+#* <pre></pre>
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to get the quantity of
+#* @param DAT The date up until which the outgoing quantity should be calculated
+#* @param PRIORITY The sales order line priority to base the search on
+#*
+#* @return An integer value, the outgoing quantity of the item
+#*!
+Funprog GET_ITEM_OUT_QUANTITY_UNTIL_DATE_BY_PRIO(SITE, ITEM, DAT, PRIORITY)
+Value Char SITE
+Value Char ITEM
+Value Date DAT
+Value Char PRIORITY
+#-
+Local Decimal QTY
+
+  If clalev([ZSOQ])=0 : Local File SORDERQ [ZSOQ] : Endif
+
+  Filter [ZSOQ] Where find([ZSOQ]SOQSTA, 1, 2)
+&                 and [ZSOQ]ITMREF = ITEM
+&                 and [ZSOQ]EXTDLVDAT <= DAT
+&                 and [ZSOQ]DEMNUM < PRIORITY      # TODO
+
+  For [ZSOQ]
+    QTY += ([ZSOQ]QTYSTU - [ZSOQ]DLVQTYSTU)
   Next
 
 End QTY
@@ -337,12 +467,50 @@ Value Char ITEM
 
 Local Decimal QTY
 
-  Local File ORDERS [YORS]
-  Filter [YORS] Where ITMREF = ITEM and STOFCY = SITE and WIPTYP = 1 and (WIPSTA = 1 or WIPSTA = 2)
-&               Order By ENDDAT
+  Local File PORDER  [YPOH]
+  Local File PORDERQ [YPOQ]
 
-  For [YORS]
-    QTY += [YORS]RMNEXTQTY
+  Link [YPOQ] With  [YPOH]POH0 ~= [YPOQ]POHNUM As [YLNK]
+&             Where [YPOQ]PRHFCY = SITE
+&               and [YPOQ]ITMREF = ITEM
+&               and [YPOQ]LINSTA <> 3
+&             Order By [YPOQ]EXTRCPDAT Desc
+
+  For [YLNK]
+    QTY += ([YPOQ]QTYSTU - [YPOQ]RCPQTYSTU)
+  Next
+
+End QTY
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the total incoming quantity of an item, by summarizing the quantities
+#* of the item on all active purchase orders (labeled with status 'Firm' or 'Planned').
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to get the quantity of
+#*
+#* @return An integer value, the total incoming quantity of the item
+#*!
+Funprog GET_ITEM_IN_QUANTITY_ACKNOWLEDGED(SITE, ITEM)
+Value Char SITE
+Value Char ITEM
+
+Local Decimal QTY
+
+  Local File PORDER  [YPOH]
+  Local File PORDERQ [YPOQ]
+
+  Link [YPOQ] With  [YPOH]POH0 ~= [YPOQ]POHNUM As [YLNK]
+&             Where [YPOQ]PRHFCY = SITE
+&               and [YPOQ]ITMREF = ITEM
+&               and [YPOH]OCNDAT <> [00/00/0000]
+&               and [YPOQ]LINSTA <> 3
+&             Order By [YPOQ]EXTRCPDAT Desc
+
+  For [YLNK]
+    QTY += ([YPOQ]QTYSTU - [YPOQ]RCPQTYSTU)
   Next
 
 End QTY
@@ -360,19 +528,62 @@ End QTY
 #*
 #* @return An integer value, the incoming quantity of the item
 #*!
-Funprog GET_ITEM_IN_QUANTITY_UNTIL_DATE(SITE, ITEM, DAT)
+Funprog GET_ITEM_IN_QUANTITY_UNTIL_DATE(SITE, ITEM, UNTIL_DATE)
 Value Char SITE
 Value Char ITEM
-Value Date DAT
+Value Date UNTIL_DATE
 
 Local Decimal QTY
 
-  Local File ORDERS [YORS]
-  Filter [YORS] Where ITMREF = ITEM and STOFCY = SITE and WIPTYP = 2 and (WIPSTA = 1 or WIPSTA = 2) and ENDDAT <= DAT
-&               Order By ENDDAT
+  Local File PORDER  [YPOH]
+  Local File PORDERQ [YPOQ]
 
-  For [YORS]
-    QTY += [YORS]RMNEXTQTY
+  Link [YPOQ] With  [YPOH]POH0 ~= [YPOQ]POHNUM As [YLNK]
+&             Where [YPOQ]PRHFCY = SITE
+&               and [YPOQ]ITMREF = ITEM
+&               and [YPOQ]EXTRCPDAT <= UNTIL_DATE
+&               and [YPOQ]LINSTA <> 3
+&             Order By [YPOQ]EXTRCPDAT Desc
+
+  For [YLNK]
+    QTY += ([YPOQ]QTYSTU - [YPOQ]RCPQTYSTU)
+  Next
+
+End QTY
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the active incoming quantity of an item until a date, by summarizing
+#* the quantities of the item on all active purchase orders (labeled with status
+#* 'Firm' or 'Planned') with an end date prior or equal to the specified date.
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to get the quantity of
+#* @param DAT The date up until which the incoming quantity should be calculated
+#*
+#* @return An integer value, the incoming quantity of the item
+#*!
+Funprog GET_ITEM_IN_QUANTITY_UNTIL_DATE_ACKNOWLEDGED(SITE, ITEM, UNTIL_DATE)
+Value Char SITE
+Value Char ITEM
+Value Date UNTIL_DATE
+
+Local Decimal QTY
+
+  Local File PORDER  [YPOH]
+  Local File PORDERQ [YPOQ]
+
+  Link [YPOQ] With  [YPOH]POH0 ~= [YPOQ]POHNUM As [YLNK]
+&             Where [YPOQ]PRHFCY = SITE
+&               and [YPOQ]ITMREF = ITEM
+&               and [YPOH]OCNDAT <> [00/00/0000]
+&               and [YPOQ]EXTRCPDAT <= UNTIL_DATE
+&               and [YPOQ]LINSTA <> 3
+&             Order By [YPOQ]EXTRCPDAT Desc
+
+  For [YLNK]
+    QTY += ([YPOQ]QTYSTU - [YPOQ]RCPQTYSTU)
   Next
 
 End QTY

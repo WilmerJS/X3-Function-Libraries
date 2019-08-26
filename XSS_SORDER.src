@@ -1,23 +1,22 @@
-#<AdxTL>@(#)0.0.0.0 $Revision$
 # ================================================================================================ #
 #
-#   AKTIEBOLAGET SYSTEMSTÖD SVERIGE
+#   AKTIEBOLAGET SYSTEMSTÃ–D SVERIGE
 #
-#     Wilmer Jensen Sternehäll
+#     Wilmer Jensen SternehÃ¤ll
 #     wilmer.sternehall@systemstod.se
 #
 #   ---
 #     Name:
 #       XSS_SORDER
 #     Description:
-#       A Systemstöd function library script containing custom Sage X3 functions developed
+#       A SystemstÃ¶d function library script containing custom Sage X3 functions developed
 #       in a general, comprehensive manner meant to fit any Sage X3 installation.
 #
 #       The functions in this file are related to SALES ORDER MANAGEMENT.
 #
 #
 #
-#   Copyright @ 2018 - 2020, Aktiebolaget Systemstöd Sverige
+#   Copyright @ 2018 - 2020, Aktiebolaget SystemstÃ¶d Sverige
 #
 #
 # ================================================================================================ #
@@ -26,11 +25,12 @@
 # < WIST >
 #**
 #* Checks if an order line will be deliverable at the specified date, by calculating if the
-#* product quantity in stock will be enough.
+#* product quantity in stock will be enough to satisfy it based on its priority (CREDATTIM).
 #* <pre></pre>
 #*
-#* This functions takes into account lines with a requested delivery date on XDATE from all orders,
-#* and prioritizes the ones with a <b>lower order number</b>.
+#* This function takes into account order lines with a higher priority (earlier CREDATTIM)
+#* than the one that is being checked, and assigns items to them first. If any stock quantity
+#* remains, the order line being checked may be delivered.
 #* <pre></pre>
 #*
 #* @param ORDER_NUM Order number
@@ -51,36 +51,30 @@ Value Integer SEQUENCE
 Value Date XDATE
 
   If clalev([YSOQ])=0 : Local File SORDERQ [YSOQ] : Endif
-  If clalev([ZSOQ])=0 : Local File SORDERQ [ZSOQ] : Endif
 
   Read [YSOQ]SOQ0 = ORDER_NUM ; LINE ; SEQUENCE
 
-  Local Decimal QTY_IN_STOCK
-  Local Decimal QTY_ALREADY_TAKEN
+  Local Date DATE_OF_NEXT_RECEIPT
+  Local Date LEADTIME_LIMIT
+  Local Date DATE_CHECK_EXCESS
+  Local Decimal QTY_AVAILABLE
 
-  QTY_IN_STOCK = func XSS_STOCK.GET_ITEM_QTY_IN_STOCK_AT_DATE([YSOQ]STOFCY, [YSOQ]ITMREF, XDATE)
+  LEADTIME_LIMIT = func XSS_STOCK.GET_THEORETICAL_LEADTIME_LIMIT([YSOQ]STOFCY, [YSOQ]ITMREF)
 
-  # End function and return false if there is no quantity in stock on this date
-  If QTY_IN_STOCK <= 0
-    End 0
-  Endif
+  DATE_OF_NEXT_RECEIPT = func XSS_PORDER.GET_NEXT_RECEIPT_DATE_BY_ITEM([YSOQ]STOFCY, [YSOQ]ITMREF, XDATE + 1)
+  DATE_OF_NEXT_RECEIPT = func XSS_VARIABLES.IS_NULL(DATE_OF_NEXT_RECEIPT, LEADTIME_LIMIT)
 
-  Filter [ZSOQ] Where find([ZSOQ]SOQSTA, 1, 2)
-&                 and [ZSOQ]DEMDLVDAT = XDATE
-&                 and [ZSOQ]ITMREF = [YSOQ]ITMREF
-&                 and [ZSOQ]SOHNUM < [YSOQ]SOHNUM
+  DATE_CHECK_EXCESS = min(DATE_OF_NEXT_RECEIPT, LEADTIME_LIMIT) - 1
 
-  For [ZSOQ]
-    QTY_ALREADY_TAKEN += [ZSOQ]QTYSTU
-  Next
+  #Infbox num$(XDATE), num$(DATE_OF_NEXT_RECEIPT), num$(LEADTIME_LIMIT), num$(DATE_CHECK_EXCESS)
 
-  If (QTY_IN_STOCK - QTY_ALREADY_TAKEN) < [YSOQ]QTYSTU
-    End 0
-  Else
+  QTY_AVAILABLE = func XSS_STOCK.GET_ITEM_AVAILABILITY_AT_DATE_BY_PRIO([YSOQ]STOFCY, [YSOQ]ITMREF, DATE_CHECK_EXCESS, [YSOQ]DEMNUM)
+
+  If QTY_AVAILABLE >= ([YSOQ]QTYSTU - [YSOQ]DLVQTYSTU)
     End 1
   Endif
 
-End
+End 0
 
 ##############################################################################################################
 # < WIST >
@@ -104,32 +98,49 @@ Value Char ORDER_NUM
 Value Integer LINE
 Value Integer SEQUENCE
 
-Local Date NULL_DATE
-
   If clalev([YSOQ])=0 : Local File SORDERQ [YSOQ] : Endif
-  If clalev([ZSOQ])=0 : Local File SORDERQ [ZSOQ] : Endif
 
   Read [YSOQ]SOQ0 = ORDER_NUM ; LINE ; SEQUENCE
 
-  If (func IS_ORDER_LINE_DELIVERABLE_AT_DATE(ORDER_NUM, LINE, SEQUENCE, [YSOQ]DEMDLVDAT))
-    End [YSOQ]DEMDLVDAT   # RETURN
+  Local Date CUSTOMER_REQUEST_DATE    # customers requested date OR today, whichever is largest
+  Local Date LEADTIME_LIMIT           # lead time limit
+  Local Date DELIVERY_DATE            # the final delivery date
+  Local Date CHECK_DATE               # variable to check whether dates are OK to deliver on
+  Local Date EARLIEST_DATE_TO_CHECK   # don't check earlier than this date. (first incoming purchase order)
+
+  CUSTOMER_REQUEST_DATE = max([YSOQ]DEMDLVDAT, date$)
+  LEADTIME_LIMIT        = func XSS_STOCK.GET_THEORETICAL_LEADTIME_LIMIT([YSOQ]STOFCY, [YSOQ]ITMREF)
+  DELIVERY_DATE         = LEADTIME_LIMIT  # start here, then check if we can deliver earlier
+  CHECK_DATE            = LEADTIME_LIMIT  # lead time date won't actually be checked, CHECK_DATE is reassigned before first check
+
+  If CUSTOMER_REQUEST_DATE > LEADTIME_LIMIT
+    End CUSTOMER_REQUEST_DATE
   Endif
 
-  # start searching for receipts after this date
-  Local Date NEXT_RECEIPT_DATE
-  NEXT_RECEIPT_DATE = [YSOQ]DEMDLVDAT
+  # min function is unnecessary because we call IS_NULL afterwards anyway.
+  #EARLIEST_DATE_TO_CHECK = min(date$, func XSS_PORDER.GET_NEXT_RECEIPT_DATE_BY_ITEM([YSOQ]STOFCY, [YSOQ]ITMREF, date$ + 1))
 
-  While NEXT_RECEIPT_DATE <> NULL_DATE
+  EARLIEST_DATE_TO_CHECK = func XSS_PORDER.GET_NEXT_RECEIPT_DATE_BY_ITEM([YSOQ]STOFCY, [YSOQ]ITMREF, date$ + 1)
+  EARLIEST_DATE_TO_CHECK = func XSS_VARIABLES.IS_NULL(EARLIEST_DATE_TO_CHECK, date$)
 
-    NEXT_RECEIPT_DATE = func XSS_PORDER.GET_NEXT_ORDER_RECEIPT_DATE_BY_ITEM([YSOQ]ITMREF, NEXT_RECEIPT_DATE + 1)
+  Repeat
 
-    If NEXT_RECEIPT_DATE <> NULL_DATE  # extra check here because we do not want to call this function with a null date
-      If (func IS_ORDER_LINE_DELIVERABLE_AT_DATE(ORDER_NUM, LINE, SEQUENCE, NEXT_RECEIPT_DATE))
-        End NEXT_RECEIPT_DATE   # RETURN
-      Endif
+    CHECK_DATE = max(EARLIEST_DATE_TO_CHECK, func XSS_PORDER.GET_LAST_RECEIPT_DATE_BY_ITEM([YSOQ]STOFCY, [YSOQ]ITMREF, CHECK_DATE - 1))
+
+    Infbox "CHECKING IF ORDER: " + ORDER_NUM + ", LINE: " + num$(LINE),
+&          "CAN BE DELIVERED AT: " + num$(CHECK_DATE)
+
+    If (func IS_ORDER_LINE_DELIVERABLE_AT_DATE(ORDER_NUM, LINE, SEQUENCE, CHECK_DATE))
+      DELIVERY_DATE = CHECK_DATE
+      Infbox "Delivery date OK: " + num$(CHECK_DATE)
+    Else
+      Infbox "Delivery date NOT OK: " + num$(CHECK_DATE)
+      Break
     Endif
 
-  Wend
+  Until CHECK_DATE = EARLIEST_DATE_TO_CHECK
 
-# if compiler reaches this end statement, no date was found and we return null date
-End NULL_DATE
+  # TODO : BRYTPUNKT
+
+End DELIVERY_DATE
+

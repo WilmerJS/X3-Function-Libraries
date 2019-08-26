@@ -1,23 +1,22 @@
-#<AdxTL>@(#)0.0.0.0 $Revision$
 # ================================================================================================ #
 #
-#   AKTIEBOLAGET SYSTEMSTÖD SVERIGE
+#   AKTIEBOLAGET SYSTEMSTÃ–D SVERIGE
 #
-#     Wilmer Jensen Sternehäll
+#     Wilmer Jensen SternehÃ¤ll
 #     wilmer.sternehall@systemstod.se
 #
 #   ---
 #     Name:
 #       XSS_VARIABLES
 #     Description:
-#       A Systemstöd function library script containing custom Sage X3 functions developed
+#       A SystemstÃ¶d function library script containing custom Sage X3 functions developed
 #       in a general, comprehensive manner meant to fit any Sage X3 installation.
 #
 #       The functions in this file are related to VARIABLE MANAGEMENT.
 #
 #
 #
-#   Copyright @ 2018 - 2020, Aktiebolaget Systemstöd Sverige
+#   Copyright @ 2018 - 2020, Aktiebolaget SystemstÃ¶d Sverige
 #
 #
 # ================================================================================================ #
@@ -48,6 +47,46 @@ Local Integer POS
   Wend
 
 End STRING
+
+
+##############################################################################################################
+# < WIST >
+#**
+#* Returns VALUE_TO_CHECK if it is not null, otherwise returns FALLBACK_VALUE. Supports any string
+#* variable types, and dates.
+#*
+#* @param VALUE_TO_CHECK The value to check if it is null
+#* @param FALLBACK_VALUE The value to return if the checked value is null
+#*
+#* @return A value of the same type as VALUE_TO_CHECK
+#*!
+Funprog IS_NULL(VALUE_TO_CHECK, FALLBACK_VALUE)
+
+  If find(type(VALUE_TO_CHECK), -1, 1, 2, 4, 5, 6, 7, 524, 525, 526)
+    End
+  Endif
+
+  Case type(VALUE_TO_CHECK)
+    When 3
+
+      If VALUE_TO_CHECK <> [00/00/0000]
+        End VALUE_TO_CHECK
+      Else
+        End FALLBACK_VALUE
+      Endif
+
+    When Default
+
+      If VALUE_TO_CHECK <> ""
+        End VALUE_TO_CHECK
+      Else
+        End FALLBACK_VALUE
+      Endif
+
+  Endcase
+
+End
+
 
 ##############################################################################################################
 # < WIST >
