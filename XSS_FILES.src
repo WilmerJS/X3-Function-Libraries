@@ -1,23 +1,23 @@
 #<AdxTL>@(#)0.0.0.0 $Revision$
 # ================================================================================================ #
 #
-#   AKTIEBOLAGET SYSTEMSTÖD SVERIGE
+#   AKTIEBOLAGET SYSTEMSTï¿½D SVERIGE
 #
-#     Wilmer Jensen Sternehäll
+#     Wilmer Jensen Sternehï¿½ll
 #     wilmer.sternehall@systemstod.se
 #
 #   ---
 #     Name:
 #       XSS_FILES
 #     Description:
-#       A Systemstöd function library script containing custom Sage X3 functions developed
+#       A Systemstï¿½d function library script containing custom Sage X3 functions developed
 #       in a general, comprehensive manner meant to fit any Sage X3 installation.
 #
 #       The functions in this file are related to FILE MANAGEMENT.
 #
 #
 #
-#   Copyright @ 2018 - 2020, Aktiebolaget Systemstöd Sverige
+#   Copyright @ 2018 - 2020, Aktiebolaget Systemstï¿½d Sverige
 #
 #
 # ================================================================================================ #
@@ -51,7 +51,7 @@ Local Integer I
   For I = 1 To FILE_AMOUNT
 
     If FILE_COUNT > dim(FILE_LIST) - 1
-      Errbox "Array variable cannot store all the files: too few dimensions", "Please contact Systemstöd"
+      Errbox "Array variable cannot store all the files: too few dimensions", "Please contact Systemstï¿½d"
       End FILE_COUNT
     Endif
 
@@ -82,10 +82,10 @@ End FILE_COUNT
 Funprog OPEN_UPLOAD_FILE_TO(DIRECTORY)
 Value Char DIRECTORY
 
-Local Char OUTFILEDEST
-Local Char FILEPATH(255) : FILEPATH = filpath(DIRECTORY,"","")
-Local Char FILNAME(255)
-Local Char TMPPATH(255)
+Local Char OUTFILEDEST(250)
+Local Char FILEPATH(250) : FILEPATH = filpath(DIRECTORY,"","")
+Local Char FILNAME(250)
+Local Char TMPPATH(250)
 Local Integer STAT
 
   # prompt user upload to the 'TMP' folder
