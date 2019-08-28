@@ -52,8 +52,12 @@ End STRING
 ##############################################################################################################
 # < WIST >
 #**
-#* Returns VALUE_TO_CHECK if it is not null, otherwise returns FALLBACK_VALUE. Supports any string
-#* variable types, and dates.
+#* Returns VALUE_TO_CHECK if it is not null, otherwise returns FALLBACK_VALUE. Supports variables of type
+#* string, date, and any numerical data type.
+#* <pre></pre>
+#* For numerical data types (int, short, float etc.) FALLBACK_VALUE is returned if VALUE_TO_CHECK is
+#* zero (0.0).
+#* <pre></pre>
 #*
 #* @param VALUE_TO_CHECK The value to check if it is null
 #* @param FALLBACK_VALUE The value to return if the checked value is null
@@ -62,7 +66,7 @@ End STRING
 #*!
 Funprog IS_NULL(VALUE_TO_CHECK, FALLBACK_VALUE)
 
-  If find(type(VALUE_TO_CHECK), -1, 1, 2, 4, 5, 6, 7, 524, 525, 526)
+  If find(type(VALUE_TO_CHECK), -1, 524, 525, 526)
     End
   Endif
 
@@ -71,21 +75,24 @@ Funprog IS_NULL(VALUE_TO_CHECK, FALLBACK_VALUE)
 
       If VALUE_TO_CHECK <> [00/00/0000]
         End VALUE_TO_CHECK
-      Else
-        End FALLBACK_VALUE
+      Endif
+
+    When 1 or 2 or 4 or 5 or 6 or 7
+
+      If VALUE_TO_CHECK <> 0
+        End VALUE_TO_CHECK
       Endif
 
     When Default
 
       If VALUE_TO_CHECK <> ""
         End VALUE_TO_CHECK
-      Else
-        End FALLBACK_VALUE
       Endif
 
   Endcase
 
-End
+# if compiler reaches this statement, then the value was null
+End FALLBACK_VALUE
 
 
 ##############################################################################################################
@@ -202,4 +209,3 @@ Local Char RESULT(30)
   Endif
 
 End RESULT
-
