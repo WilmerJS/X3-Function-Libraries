@@ -25,10 +25,10 @@
 # < WIST >
 #**
 #* Checks if an order line will be deliverable at the specified date, by calculating if the
-#* product quantity in stock will be enough to satisfy it based on its priority (CREDATTIM).
+#* product quantity in stock will be enough to satisfy it based on its priority (DEMNUM).
 #* <pre></pre>
 #*
-#* This function takes into account order lines with a higher priority (earlier CREDATTIM)
+#* This function takes into account order lines with a higher priority (lower DEMNUM)
 #* than the one that is being checked, and assigns items to them first. If any stock quantity
 #* remains, the order line being checked may be delivered.
 #* <pre></pre>
@@ -108,39 +108,81 @@ Value Integer SEQUENCE
   Local Date CHECK_DATE               # variable to check whether dates are OK to deliver on
   Local Date EARLIEST_DATE_TO_CHECK   # don't check earlier than this date. (first incoming purchase order)
 
-  CUSTOMER_REQUEST_DATE = max([YSOQ]DEMDLVDAT, date$)
-  LEADTIME_LIMIT        = func XSS_STOCK.GET_THEORETICAL_LEADTIME_LIMIT([YSOQ]STOFCY, [YSOQ]ITMREF)
-  DELIVERY_DATE         = LEADTIME_LIMIT  # start here, then check if we can deliver earlier
-  CHECK_DATE            = LEADTIME_LIMIT  # lead time date won't actually be checked, CHECK_DATE is reassigned before first check
-
-  If CUSTOMER_REQUEST_DATE > LEADTIME_LIMIT
-    End CUSTOMER_REQUEST_DATE
-  Endif
-
-  # min function is unnecessary because we call IS_NULL afterwards anyway.
-  #EARLIEST_DATE_TO_CHECK = min(date$, func XSS_PORDER.GET_NEXT_RECEIPT_DATE_BY_ITEM([YSOQ]STOFCY, [YSOQ]ITMREF, date$ + 1))
-
-  EARLIEST_DATE_TO_CHECK = func XSS_PORDER.GET_NEXT_RECEIPT_DATE_BY_ITEM([YSOQ]STOFCY, [YSOQ]ITMREF, date$ + 1)
-  EARLIEST_DATE_TO_CHECK = func XSS_VARIABLES.IS_NULL(EARLIEST_DATE_TO_CHECK, date$)
+  LEADTIME_LIMIT          = func XSS_STOCK.GET_THEORETICAL_LEADTIME_LIMIT([YSOQ]STOFCY, [YSOQ]ITMREF)
+  DELIVERY_DATE           = LEADTIME_LIMIT  # start here, then check if we can deliver earlier
+  CHECK_DATE              = LEADTIME_LIMIT  # lead time date won't actually be checked, CHECK_DATE is reassigned before first check
+  EARLIEST_DATE_TO_CHECK  = date$
 
   Repeat
 
     CHECK_DATE = max(EARLIEST_DATE_TO_CHECK, func XSS_PORDER.GET_LAST_RECEIPT_DATE_BY_ITEM([YSOQ]STOFCY, [YSOQ]ITMREF, CHECK_DATE - 1))
 
-    Infbox "CHECKING IF ORDER: " + ORDER_NUM + ", LINE: " + num$(LINE),
-&          "CAN BE DELIVERED AT: " + num$(CHECK_DATE)
+#    Infbox "CHECKING IF ORDER: " + ORDER_NUM + ", LINE: " + num$(LINE),
+#&          "CAN BE DELIVERED AT: " + num$(CHECK_DATE)
 
     If (func IS_ORDER_LINE_DELIVERABLE_AT_DATE(ORDER_NUM, LINE, SEQUENCE, CHECK_DATE))
       DELIVERY_DATE = CHECK_DATE
-      Infbox "Delivery date OK: " + num$(CHECK_DATE)
+#      Infbox "CHECKING IF ORDER: " + ORDER_NUM + ", LINE: " + num$(LINE),
+#&            "CAN BE DELIVERED AT: " + num$(CHECK_DATE),
+#&            "",
+#&            "Delivery date OK"
     Else
-      Infbox "Delivery date NOT OK: " + num$(CHECK_DATE)
+#      Infbox "CHECKING IF ORDER: " + ORDER_NUM + ", LINE: " + num$(LINE),
+#&            "CAN BE DELIVERED AT: " + num$(CHECK_DATE),
+#&            "",
+#&            "Delivery date NOT OK"
       Break
     Endif
 
   Until CHECK_DATE = EARLIEST_DATE_TO_CHECK
 
-  # TODO : BRYTPUNKT
+#  Infbox "ORDER: " + ORDER_NUM + ", LINE: " + num$(LINE),
+#&        "Delivery date: " + num$(DELIVERY_DATE)
 
 End DELIVERY_DATE
 
+##############################################################################################################
+# < WIST >
+#**
+#* Returns the last (highest) expected delivery date found on the lines of an order.
+#*
+#* @param ORDER_NUM Order number
+#*
+#* @return The last delivery date
+#*!
+Funprog GET_LAST_DELIVERY_DATE_ON_ORDER(ORDER_NUM)
+Value Char ORDER_NUM
+
+  Local File SORDERQ  [YSOQ]
+  Filter [YSOQ] Where [YSOQ]SOHNUM = ORDER_NUM
+
+  Local Date MAX_DATE
+
+  For [YSOQ]
+    MAX_DATE = max(MAX_DATE, [YSOQ]EXTDLVDAT)
+  Next
+
+End MAX_DATE
+
+##############################################################################################################
+# < WIST >
+#**
+#* Returns the first (lowest) expected delivery date found on the lines of an order.
+#*
+#* @param ORDER_NUM Order number
+#*
+#* @return The last delivery date
+#*!
+Funprog GET_FIRST_DELIVERY_DATE_ON_ORDER(ORDER_NUM)
+Value Char ORDER_NUM
+
+  Local File SORDERQ  [YSOQ]
+  Filter [YSOQ] Where [YSOQ]SOHNUM = ORDER_NUM
+
+  Local Date MIN_DATE
+
+  For [YSOQ]
+    MIN_DATE = func XSS_VARIABLES.IS_NULL(min(MIN_DATE, [YSOQ]EXTDLVDAT), [YSOQ]EXTDLVDAT)
+  Next
+
+End MIN_DATE
