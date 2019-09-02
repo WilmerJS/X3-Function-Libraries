@@ -77,7 +77,7 @@ Funprog IS_NULL(VALUE_TO_CHECK, FALLBACK_VALUE)
         End VALUE_TO_CHECK
       Endif
 
-    When 1, 2, 4, 5, 6, 7
+    When 1 or 2 or 4 or 5 or 6 or 7
 
       If VALUE_TO_CHECK <> 0
         End VALUE_TO_CHECK
@@ -93,6 +93,51 @@ Funprog IS_NULL(VALUE_TO_CHECK, FALLBACK_VALUE)
 
 # if compiler reaches this statement, then the value was null
 End FALLBACK_VALUE
+
+##############################################################################################################
+# < WIST >
+#**
+#* Checks if a date is on a weekend (saturday or sunday). Returns 1 if day is on weekend, otherwise
+#* returns 0.
+#*
+#* @param XDATE The date to check
+#*
+#* @return A tinyint value, 1 if true and 0 if false
+#*!
+Funprog DATE_IS_WEEKEND(XDATE)
+Value Date XDATE
+
+Local Tinyint IS_WEEKEND
+
+  If find(dayn(XDATE, 6, 7))
+    IS_WEEKEND = 1
+  Endif
+
+End IS_WEEKEND
+
+##############################################################################################################
+# < WIST >
+#**
+#* Returns the first week day (monday - friday) that occurs on or after XDATE.
+#*
+#* @param XDATE The date to search from
+#*
+#* @return A date value, the first weekday
+#*!
+Funprog GET_FIRST_WEEKDAY(XDATE)
+Value Date XDATE
+
+  Local Date FIRST_WEEKDAY
+  FIRST_WEEKDAY = XDATE
+
+  Case dayn(XDATE)
+    When 6
+      FIRST_WEEKDAY += 1
+    When 7
+      FIRST_WEEKDAY += 2
+  Endcase
+
+End FIRST_WEEKDAY
 
 
 ##############################################################################################################
