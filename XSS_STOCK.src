@@ -231,7 +231,7 @@ End STOCK_QTY
 #*
 #* @return An integer value, the available quantity
 #*!
-Funprog GET_ITEM_STOCK_QTY_EXPECTED_ALL(SITE, ITEM)
+Funprog GET_ITEM_STOCK_QTY_EXPECTED(SITE, ITEM)
 Value Char SITE
 Value Char ITEM
 #-
@@ -673,4 +673,3 @@ Local Decimal QTY
   Next
 
 End QTY
-
