@@ -132,9 +132,9 @@ Value Date XDATE
 
   Case dayn(XDATE)
     When 6
-      FIRST_WEEKDAY += 1
-    When 7
       FIRST_WEEKDAY += 2
+    When 7
+      FIRST_WEEKDAY += 1
   Endcase
 
 End FIRST_WEEKDAY
