@@ -43,10 +43,6 @@ Local Date RETURN_DATE
   Local File PORDER  [YPOH]
   Local File PORDERQ [YPOQ]
 
-  # TODO
-  # should we include "late" lines (LINSTA = 2)?
-  # should we use LINCLEFLG instead of LINSTA?
-  # should we use LINSTOFCY or STOFCY (from header)
   Link [YPOQ] With [YPOH]POH0 ~= [YPOQ]POHNUM As   [YLNK]
 &             Where [YPOQ]PRHFCY = SITE
 &               and [YPOQ]ITMREF = ITEM
@@ -67,8 +63,9 @@ End RETURN_DATE
 ##############################################################################################################
 # < WIST >
 #**
-#* Returns the date of the last upcoming receipt of an item from a purchase order,, that is expected
-#* to be received on or before UNTIL_DATE. Returns null if no purchase order was found.
+#* Returns the date of the last upcoming receipt of an item from a purchase order, that is expected
+#* to be received on or before UNTIL_DATE. If UNTIL_DATE is null ([00/00/0000]), it is not taken
+#* into account, and all purchase orders are considered. Returns null if no purchase order was found.
 #*
 #* @param ITEM Order number
 #* @param FROM_DATE Order line
@@ -82,13 +79,11 @@ Value Date UNTIL_DATE
 
 Local Date RETURN_DATE
 
+  UNTIL_DATE = func XSS_VARIABLES.IS_NULL(UNTIL_DATE, [31/12/9999])
+
   Local File PORDER  [YPOH]
   Local File PORDERQ [YPOQ]
 
-  # TODO
-  # should we include "late" lines (LINSTA = 2)?
-  # should we use LINCLEFLG instead of LINSTA?
-  # should we use LINSTOFCY or STOFCY (from header)
   Link [YPOQ] With [YPOH]POH0 ~= [YPOQ]POHNUM As   [YLNK]
 &             Where [YPOQ]PRHFCY = SITE
 &               and [YPOQ]ITMREF = ITEM
