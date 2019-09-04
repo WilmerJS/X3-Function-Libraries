@@ -1,23 +1,22 @@
-#<AdxTL>@(#)0.0.0.0 $Revision$
 # ================================================================================================ #
 #
-#   AKTIEBOLAGET SYSTEMST�D SVERIGE
+#   AKTIEBOLAGET SYSTEMSTÖD SVERIGE
 #
-#     Wilmer Jensen Sterneh�ll
+#     Wilmer Jensen Sternehäll
 #     wilmer.sternehall@systemstod.se
 #
 #   ---
 #     Name:
 #       XSS_FILES
 #     Description:
-#       A Systemst�d function library script containing custom Sage X3 functions developed
+#       A Systemstöd function library script containing custom Sage X3 functions developed
 #       in a general, comprehensive manner meant to fit any Sage X3 installation.
 #
 #       The functions in this file are related to FILE MANAGEMENT.
 #
 #
 #
-#   Copyright @ 2018 - 2020, Aktiebolaget Systemst�d Sverige
+#   Copyright @ 2018 - 2020, Aktiebolaget Systemstöd Sverige
 #
 #
 # ================================================================================================ #
@@ -51,7 +50,7 @@ Local Integer I
   For I = 1 To FILE_AMOUNT
 
     If FILE_COUNT > dim(FILE_LIST) - 1
-      Errbox "Array variable cannot store all the files: too few dimensions", "Please contact Systemst�d"
+      Errbox "Array variable cannot store all the files: too few dimensions", "Please contact Systemstöd"
       End FILE_COUNT
     Endif
 
@@ -82,10 +81,10 @@ End FILE_COUNT
 Funprog OPEN_UPLOAD_FILE_TO(DIRECTORY)
 Value Char DIRECTORY
 
-Local Char OUTFILEDEST(250)
-Local Char FILEPATH(250) : FILEPATH = filpath(DIRECTORY,"","")
-Local Char FILNAME(250)
-Local Char TMPPATH(250)
+Local Char OUTFILEDEST
+Local Char FILEPATH(255) : FILEPATH = filpath(DIRECTORY,"","")
+Local Char FILNAME(255)
+Local Char TMPPATH(255)
 Local Integer STAT
 
   # prompt user upload to the 'TMP' folder
@@ -163,7 +162,7 @@ Local Integer LASTBACKSLASH_POS : LASTBACKSLASH_POS = 0
   Wend
 
   # all characters behind the last slash, but remove the extension (including the dot)
-  FILNAME = seg$(FILEPATH, LASTBACKSLASH_POS + 1, len(FILEPATH) - (len(func GETFILEEXT(FILEPATH)) + 1))
+  FILNAME = seg$(FILEPATH, LASTBACKSLASH_POS + 1, len(FILEPATH) - (len(func GET_FILE_EXTENSION(FILEPATH)) + 1))
 
 End FILNAME
 
