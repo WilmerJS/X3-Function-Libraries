@@ -53,7 +53,7 @@ End STRING
 # < WIST >
 #**
 #* Returns VALUE_TO_CHECK if it is not null, otherwise returns FALLBACK_VALUE. Supports variables of type
-#* string, date, and any numerical data type.
+#* string and date, as well as any numerical data type.
 #* <pre></pre>
 #* For numerical data types (int, short, float etc.) FALLBACK_VALUE is returned if VALUE_TO_CHECK is
 #* zero (0.0).
@@ -107,7 +107,8 @@ End FALLBACK_VALUE
 Funprog DATE_IS_WEEKEND(XDATE)
 Value Date XDATE
 
-Local Tinyint IS_WEEKEND
+  Local Tinyint IS_WEEKEND
+  IS_WEEKEND = 0
 
   If find(dayn(XDATE, 6, 7))
     IS_WEEKEND = 1
@@ -254,3 +255,4 @@ Local Char RESULT(30)
   Endif
 
 End RESULT
+
