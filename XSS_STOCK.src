@@ -86,7 +86,7 @@ Local Date NULLDATE
 &             Where [YPOQ]ITMREF = ITEM
 &               and [YPOQ]PRHFCY = SITE
 &               and [YPOH]OCNDAT <> NULLDATE
-&               and [YPOQ]LINSTA <> 3
+&               and [YPOQ]LINCLEFLG = 1
 &             Order By [YPOQ]EXTRCPDAT Desc
 
   Read [YLNK] First
@@ -237,9 +237,9 @@ Value Char ITEM
 #-
 Local Decimal STOCK_QTY
 
-  STOCK_QTY = func GET_ITEM_STOCK_QTY(ITEM, SITE, "A")
-&           - func GET_ITEM_OUT_QUANTITY(ITEM, SITE)
-&           + func GET_ITEM_IN_QUANTITY(ITEM, SITE)
+  STOCK_QTY = func GET_ITEM_STOCK_QTY(SITE, ITEM, "A")
+&           - func GET_ITEM_OUT_QUANTITY(SITE, ITEM)
+&           + func GET_ITEM_IN_QUANTITY(SITE, ITEM)
 
 End STOCK_QTY
 
@@ -559,7 +559,7 @@ Local Decimal QTY
   Link [YPOQ] With  [YPOH]POH0 ~= [YPOQ]POHNUM As [YLNK]
 &             Where [YPOQ]PRHFCY = SITE
 &               and [YPOQ]ITMREF = ITEM
-&               and [YPOQ]LINSTA <> 3
+&               and [YPOQ]LINCLEFLG = 1
 &             Order By [YPOQ]EXTRCPDAT Desc
 
   For [YLNK]
@@ -592,7 +592,7 @@ Local Decimal QTY
 &             Where [YPOQ]PRHFCY = SITE
 &               and [YPOQ]ITMREF = ITEM
 &               and [YPOH]OCNDAT <> [00/00/0000]
-&               and [YPOQ]LINSTA <> 3
+&               and [YPOQ]LINCLEFLG = 1
 &             Order By [YPOQ]EXTRCPDAT Desc
 
   For [YLNK]
@@ -628,7 +628,7 @@ Local Decimal QTY
 &             Where [YPOQ]PRHFCY = SITE
 &               and [YPOQ]ITMREF = ITEM
 &               and [YPOQ]EXTRCPDAT <= UNTIL_DATE
-&               and [YPOQ]LINSTA <> 3
+&               and [YPOQ]LINCLEFLG = 1
 &             Order By [YPOQ]EXTRCPDAT Desc
 
   For [YLNK]
@@ -665,7 +665,7 @@ Local Decimal QTY
 &               and [YPOQ]ITMREF = ITEM
 &               and [YPOH]OCNDAT <> [00/00/0000]
 &               and [YPOQ]EXTRCPDAT <= UNTIL_DATE
-&               and [YPOQ]LINSTA <> 3
+&               and [YPOQ]LINCLEFLG = 1
 &             Order By [YPOQ]EXTRCPDAT Desc
 
   For [YLNK]
@@ -673,3 +673,4 @@ Local Decimal QTY
   Next
 
 End QTY
+
