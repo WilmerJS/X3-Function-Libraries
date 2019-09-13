@@ -53,7 +53,7 @@ End STRING
 # < WIST >
 #**
 #* Returns VALUE_TO_CHECK if it is not null, otherwise returns FALLBACK_VALUE. Supports variables of type
-#* string and date, as well as any numerical data type.
+#* string, date, and any numerical data type.
 #* <pre></pre>
 #* For numerical data types (int, short, float etc.) FALLBACK_VALUE is returned if VALUE_TO_CHECK is
 #* zero (0.0).
@@ -256,3 +256,29 @@ Local Char RESULT(30)
 
 End RESULT
 
+##############################################################################################################
+# < WIST >
+#**
+#* Returns the text of a local menu index, translated to the specified language.
+#*
+#* @param MENU The local menu number
+#* @param INDEX The index in the local menu
+#* @param The language to return the text in
+#*
+#* @return A string value, the local menu message
+#*
+#*!
+Funprog GET_LOCAL_MENU_TEXT(MENU, INDEX, LANGUAGE)
+Value Integer MENU
+Value Integer INDEX
+Value Char LANGUAGE
+
+Local Char TEXT(250)
+
+  If !clalev([F:XAPL]) : Local File APLSTD [F:XAPL] : Endif
+  Read [F:XAPL]CLE = MENU ; INDEX ; LANGUAGE
+  If fstat = 0 Then
+    TEXT = [F:XAPL]LANMES
+  Endif
+
+End TEXT
