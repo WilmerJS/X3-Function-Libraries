@@ -259,6 +259,32 @@ End RESULT
 ##############################################################################################################
 # < WIST >
 #**
+#*
+#*
+#*
+#*!
+Funprog FORMAT_VALUE_BY_TYPE(VAR_TYPE, LM_NUMBER, VAR_LENGTH, INTERNAL_VALUE)
+Value Char VAR_TYPE
+Value Integer LM_NUMBER
+Value Integer VAR_LENGTH
+Value Char INTERNAL_VALUE
+
+  Case VAR_TYPE
+    When "A"
+      End INTERNAL_VALUE
+    When "DCB"
+      End INTERNAL_VALUE
+    When "D"
+      End INTERNAL_VALUE
+    When "M"
+      End func GET_LOCAL_MENU_TEXT(LM_NUMBER, val(INTERNAL_VALUE), [V]GLANGUE)
+  Endcase
+
+End
+
+##############################################################################################################
+# < WIST >
+#**
 #* Returns the text of a local menu index, translated to the specified language.
 #*
 #* @param MENU The local menu number
@@ -282,3 +308,4 @@ Local Char TEXT(250)
   Endif
 
 End TEXT
+
