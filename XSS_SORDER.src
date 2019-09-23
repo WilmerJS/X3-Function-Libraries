@@ -70,6 +70,12 @@ Value Date XDATE
 
   QTY_AVAILABLE = func XSS_STOCK.GET_ITEM_AVAILABILITY_AT_DATE_BY_PRIO([YSOQ]STOFCY, [YSOQ]ITMREF, DATE_CHECK_EXCESS, [YSOQ]DEMNUM)
 
+#  If [V]GUSER = "ADMIN"
+#    Infbox "Checking if deliverable at date: " + num$(XDATE),
+#&          "... by checking availability at: " + num$(DATE_CHECK_EXCESS),
+#&          "Available qty: " + num$(QTY_AVAILABLE)
+#  Endif
+
   If QTY_AVAILABLE >= ([YSOQ]QTYSTU - [YSOQ]DLVQTYSTU)
     End 1
   Endif
@@ -117,27 +123,35 @@ Value Integer SEQUENCE
 
     CHECK_DATE = max(EARLIEST_DATE_TO_CHECK, func XSS_PORDER.GET_LAST_RECEIPT_DATE_BY_ITEM([YSOQ]STOFCY, [YSOQ]ITMREF, CHECK_DATE - 1))
 
+#    If [V]GUSER = "ADMIN"
 #    Infbox "CHECKING IF ORDER: " + ORDER_NUM + ", LINE: " + num$(LINE),
 #&          "CAN BE DELIVERED AT: " + num$(CHECK_DATE)
+#    Endif
 
     If (func IS_ORDER_LINE_DELIVERABLE_AT_DATE(ORDER_NUM, LINE, SEQUENCE, CHECK_DATE))
       DELIVERY_DATE = CHECK_DATE
-#      Infbox "CHECKING IF ORDER: " + ORDER_NUM + ", LINE: " + num$(LINE),
-#&            "CAN BE DELIVERED AT: " + num$(CHECK_DATE),
-#&            "",
-#&            "Delivery date OK"
+#      If [V]GUSER = "ADMIN"
+#        Infbox "CHECKING IF ORDER: " + ORDER_NUM + ", LINE: " + num$(LINE),
+#&              "CAN BE DELIVERED AT: " + num$(CHECK_DATE),
+#&              "",
+#&              "Delivery date OK"
+#      Endif
     Else
-#      Infbox "CHECKING IF ORDER: " + ORDER_NUM + ", LINE: " + num$(LINE),
-#&            "CAN BE DELIVERED AT: " + num$(CHECK_DATE),
-#&            "",
-#&            "Delivery date NOT OK"
+#      If [V]GUSER = "ADMIN"
+#        Infbox "CHECKING IF ORDER: " + ORDER_NUM + ", LINE: " + num$(LINE),
+#&              "CAN BE DELIVERED AT: " + num$(CHECK_DATE),
+#&              "",
+#&              "Delivery date NOT OK"
+#      Endif
       Break
     Endif
 
   Until CHECK_DATE = EARLIEST_DATE_TO_CHECK
 
+#  If [V]GUSER = "ADMIN"
 #  Infbox "ORDER: " + ORDER_NUM + ", LINE: " + num$(LINE),
 #&        "Delivery date: " + num$(DELIVERY_DATE)
+#  Endif
 
 End DELIVERY_DATE
 
@@ -186,3 +200,4 @@ Value Char ORDER_NUM
   Next
 
 End MIN_DATE
+
