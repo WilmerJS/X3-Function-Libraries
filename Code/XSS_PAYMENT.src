@@ -1,0 +1,75 @@
+#<AdxTL>@(#)0.0.0.0 $Revision$
+# ================================================================================================ #
+#
+#   AKTIEBOLAGET SYSTEMSTÖD SVERIGE
+#
+#     Wilmer Jensen Sternehäll
+#     wilmer.sternehall@systemstod.se
+#
+#   ---
+#     Name:
+#       XSS_PAYMENT
+#     Description:
+#       A Systemstöd function library script containing custom Sage X3 functions developed
+#       in a general, comprehensive manner meant to fit any Sage X3 installation.
+#
+#       The functions in this file are related to PAYMENT MANAGEMENT.
+#
+#
+#
+#   Copyright @ 2018 - 2020, Aktiebolaget Systemstöd Sverige
+#
+#
+# ================================================================================================ #
+
+##############################################################################################################
+# < WIST >
+#**
+#* Returns a reference from each line on the specified payment. If a line corresponds to a
+#* purchase order, the order number is returned. If the line corresponds to an invoice, the OCR
+#* (or the suppliers order number, if there is no OCR) is returned.
+#*
+#* @param PAYMENT_NUMBER The relevant payment
+#*
+#* @return A string value, all the references separated by a comma and a space
+#*!
+Funprog GET_REFERENCES_FROM_PAYMENT(PAYMENT_NUMBER)
+Value Char PAYMENT_NUMBER
+
+  # old string for bank file definition
+  # string$([F:PIH]XOCR<>"",[F:PIH]XOCR)+string$([F:PIH]XOCR="",[F:PIH]BPRVCR)
+
+  Local File PAYMENTD [YPYD]
+  Local File PINVOICE [YPIH]
+
+  Local Char REFERENCE_STRING(250)
+
+  Filter [YPYD] Where [YPYD]NUM = PAYMENT_NUMBER
+
+  For [YPYD]
+
+    Case [YPYD]IPTTYP
+      When 2
+
+        REFERENCE_STRING += [YPYD]VCRNUM
+
+      When Default
+
+        Read [YPIH]PIH0 = [YPYD]VCRNUM
+        If [YPIH]XOCR <> ""
+          REFERENCE_STRING += [YPIH]XOCR
+        Else
+          REFERENCE_STRING += [YPIH]BPRVCR
+        Endif
+
+    Endcase
+
+    REFERENCE_STRING += ", "
+
+  Next
+
+  # remove the last comma and space
+  REFERENCE_STRING = left$(REFERENCE_STRING, len(REFERENCE_STRING) - 2)
+
+End REFERENCE_STRING
+

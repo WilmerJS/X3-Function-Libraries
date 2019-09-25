@@ -1,0 +1,55 @@
+#<AdxTL>@(#)0.0.0.0 $Revision$
+# ================================================================================================ #
+#
+#   AKTIEBOLAGET SYSTEMSTÖD SVERIGE
+#
+#     Wilmer Jensen Sternehäll
+#     wilmer.sternehall@systemstod.se
+#
+#   ---
+#     Name:
+#       XSS_DEV
+#     Description:
+#       A Systemstöd function library script containing custom Sage X3 functions developed
+#       in a general, comprehensive manner meant to fit any Sage X3 installation.
+#
+#       The functions in this file are related to DEVELOPMENT MANAGEMENT.
+#
+#
+#
+#   Copyright @ 2018 - 2020, Aktiebolaget Systemstöd Sverige
+#
+#
+# ================================================================================================ #
+
+##############################################################################################################
+# < WIST >
+#**
+#* Checks if a Systemstöd developed product is active for this Sage X3 installation.
+#*
+#* @param PRODUCT_ID The product to check
+#*
+#* @return An integer value, 1 = active || 0 = inactive
+#*!
+Funprog IS_PRODUCT_ACTIVE(PRODUCT_ID)
+Value Char PRODUCT_ID
+
+  Local File XSPRODUCTS [YXSP]
+  Read [YXSP]XSP0 = PRODUCT_ID
+
+  If fstat
+    End 0
+  Endif
+
+  Local Tinyint RETVAL
+  RETVAL = max(0, [YXSP]ISACTIVE - 1)
+
+End RETVAL
+
+
+
+
+
+
+
+#
