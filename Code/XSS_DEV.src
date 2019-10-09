@@ -34,8 +34,10 @@
 #* @param BACTION The action that the button should call
 #* @param BACTCODE Activity code for the button
 #*
+#* @return An integer value, fstat value of the transaction (non-zero means error occured)
+#*
 #*!
-Subprog ADD_BUTTON(WINDOW, BTYPE, BCODE, BVALIDATING, BTEXT, BACTION, BACTCODE)
+Funprog ADD_WINDOW_BUTTON(WINDOW, BTYPE, BCODE, BVALIDATING, BTEXT, BACTION, BACTCODE)
 Value Char WINDOW
 Value Shortint BTYPE
 Value Char BCODE
@@ -69,7 +71,7 @@ Value Char BACTCODE
   Else      : Commit
   Endif
 
-End
+End fstat
 
 ##############################################################################################################
 # < WIST >
@@ -94,6 +96,24 @@ Value Char PRODUCT_ID
   RETVAL = max(0, [YXSP]ISACTIVE - 1)
 
 End RETVAL
+
+##############################################################################################################
+# < WIST >
+#**
+#* Opens an input box for the user to type a string into.
+#*
+#*!
+Funprog OPEN_INPUT_BOX(TITLE, FIELD_NAME, OBJECT_TYPE)
+Value Char TITLE
+Value Char FIELD_NAME
+Value Char OBJECT_TYPE
+
+  Local Integer OK
+  Local Char USER_INPUT(250)
+
+  Call SAICAR(USER_INPUT, TITLE, FIELD_NAME, OBJECT_TYPE, 0, 0, "", OK) From GESECRAN
+
+End USER_INPUT
 
 
 
