@@ -208,8 +208,8 @@ Value Date XDATE
 Local Decimal STOCK_QTY
 
   STOCK_QTY = func GET_ITEM_STOCK_QTY(ITEM, SITE, "A")
-&           - func GET_ITEM_OUT_QTY_UNTIL_DATE(SITE, ITEM, XDATE)
-&           + func GET_ITEM_IN_QTY_UNTIL_DATE(SITE, ITEM, XDATE)
+&           - func GET_ITEM_OUT_QUANTITY_UNTIL_DATE(SITE, ITEM, XDATE)
+&           + func GET_ITEM_IN_QUANTITY_UNTIL_DATE(SITE, ITEM, XDATE)
 
 End STOCK_QTY
 
@@ -229,7 +229,7 @@ End STOCK_QTY
 #* @param SITE The relevant site
 #* @param ITEM The item to deliver.
 #*
-#* @return An integer value, the expected quantity
+#* @return An integer value, the available quantity
 #*!
 Funprog GET_ITEM_STOCK_QTY_EXPECTED(SITE, ITEM)
 Value Char SITE
@@ -238,36 +238,8 @@ Value Char ITEM
 Local Decimal STOCK_QTY
 
   STOCK_QTY = func GET_ITEM_STOCK_QTY(SITE, ITEM, "A")
-&           - func GET_ITEM_OUT_QTY(SITE, ITEM)
-&           + func GET_ITEM_IN_QTY(SITE, ITEM)
-
-End STOCK_QTY
-
-##############################################################################################################
-# < WIST >
-#**
-#* Gets the available stock quantity of an item, subtracting the quantities on all open sales orders from
-#* the current stock quantity.
-#*
-#* It is calculated by the following formula:
-#* <pre></pre>
-#*
-#* <code>Stock Quantity - Outgoing Items</code>
-#* <pre></pre>
-#*
-#* @param SITE The relevant site
-#* @param ITEM The item to deliver
-#*
-#* @return An integer value, the available quantity
-#*!
-Funprog GET_ITEM_STOCK_QTY_AVAILABLE(SITE, ITEM)
-Value Char SITE
-Value Char ITEM
-#-
-Local Decimal STOCK_QTY
-
-  STOCK_QTY = func GET_ITEM_STOCK_QTY(SITE, ITEM, "A")
-&           - func GET_ITEM_OUT_QTY(SITE, ITEM)
+&           - func GET_ITEM_OUT_QUANTITY(SITE, ITEM)
+&           + func GET_ITEM_IN_QUANTITY(SITE, ITEM)
 
 End STOCK_QTY
 
@@ -298,15 +270,15 @@ Value Char PRIORITY
 Local Decimal AVAILABLE_QTY
 
   AVAILABLE_QTY = func GET_ITEM_STOCK_QTY(SITE, ITEM, "A")
-&               - func GET_ITEM_OUT_QTY_UNTIL_DATE_BY_PRIO(SITE, ITEM, XDATE, PRIORITY)
-&               + func GET_ITEM_IN_QTY_UNTIL_DATE_ACKNOWLEDGED(SITE, ITEM, XDATE)
+&               - func GET_ITEM_OUT_QUANTITY_UNTIL_DATE_BY_PRIO(SITE, ITEM, XDATE, PRIORITY)
+&               + func GET_ITEM_IN_QUANTITY_UNTIL_DATE_ACKNOWLEDGED(SITE, ITEM, XDATE)
 
 
 #  Infbox "AVAILABILITY AT DATE: " + num$(XDATE),
 #&       "",
 #&       "I LAGER IDAG: " + num$(func GET_ITEM_STOCK_QTY(SITE, ITEM, "A")),
-#&       "UTGÅENDE (MED HÖGRE PRIO): " + num$(func GET_ITEM_OUT_QTY_UNTIL_DATE_BY_PRIO(SITE, ITEM, XDATE, PRIORITY)),
-#&       "INKOMMANDE: " + num$(func GET_ITEM_IN_QTY_UNTIL_DATE_ACKNOWLEDGED(SITE, ITEM, XDATE)),
+#&       "UTGÅENDE (MED HÖGRE PRIO): " + num$(func GET_ITEM_OUT_QUANTITY_UNTIL_DATE_BY_PRIO(SITE, ITEM, XDATE, PRIORITY)),
+#&       "INKOMMANDE: " + num$(func GET_ITEM_IN_QUANTITY_UNTIL_DATE_ACKNOWLEDGED(SITE, ITEM, XDATE)),
 #&       "",
 #&       "TILLGÄNGLIGT: " + num$(AVAILABLE_QTY)
 
@@ -473,7 +445,7 @@ End COUNT
 #*
 #* @return An integer value, the total outgoing quantity of the item
 #*!
-Funprog GET_ITEM_OUT_QTY(SITE, ITEM)
+Funprog GET_ITEM_OUT_QUANTITY(SITE, ITEM)
 Value Char SITE
 Value Char ITEM
 #-
@@ -503,7 +475,7 @@ End QTY
 #*
 #* @return An integer value, the outgoing quantity of the item
 #*!
-Funprog GET_ITEM_OUT_QTY_UNTIL_DATE(SITE, ITEM, DAT)
+Funprog GET_ITEM_OUT_QUANTITY_UNTIL_DATE(SITE, ITEM, DAT)
 Value Char SITE
 Value Char ITEM
 Value Date DAT
@@ -543,7 +515,7 @@ End QTY
 #*
 #* @return An integer value, the outgoing quantity of the item
 #*!
-Funprog GET_ITEM_OUT_QTY_UNTIL_DATE_BY_PRIO(SITE, ITEM, DAT, PRIORITY)
+Funprog GET_ITEM_OUT_QUANTITY_UNTIL_DATE_BY_PRIO(SITE, ITEM, DAT, PRIORITY)
 Value Char SITE
 Value Char ITEM
 Value Date DAT
@@ -556,7 +528,7 @@ Local Decimal QTY
   Filter [ZSOQ] Where [ZSOQ]SOQSTA < 3
 &                 and [ZSOQ]ITMREF = ITEM
 &                 and [ZSOQ]EXTDLVDAT <= DAT
-&                 and [ZSOQ]XITMAVAPRIO < PRIORITY      # TODO
+&                 and [ZSOQ]DEMNUM < PRIORITY      # TODO
 
   For [ZSOQ]
     QTY += ([ZSOQ]QTYSTU - [ZSOQ]DLVQTYSTU)
@@ -575,7 +547,7 @@ End QTY
 #*
 #* @return An integer value, the total incoming quantity of the item
 #*!
-Funprog GET_ITEM_IN_QTY(SITE, ITEM)
+Funprog GET_ITEM_IN_QUANTITY(SITE, ITEM)
 Value Char SITE
 Value Char ITEM
 
@@ -607,7 +579,7 @@ End QTY
 #*
 #* @return An integer value, the total incoming quantity of the item
 #*!
-Funprog GET_ITEM_IN_QTY_ACKNOWLEDGED(SITE, ITEM)
+Funprog GET_ITEM_IN_QUANTITY_ACKNOWLEDGED(SITE, ITEM)
 Value Char SITE
 Value Char ITEM
 
@@ -642,7 +614,7 @@ End QTY
 #*
 #* @return An integer value, the incoming quantity of the item
 #*!
-Funprog GET_ITEM_IN_QTY_UNTIL_DATE(SITE, ITEM, UNTIL_DATE)
+Funprog GET_ITEM_IN_QUANTITY_UNTIL_DATE(SITE, ITEM, UNTIL_DATE)
 Value Char SITE
 Value Char ITEM
 Value Date UNTIL_DATE
@@ -678,7 +650,7 @@ End QTY
 #*
 #* @return An integer value, the incoming quantity of the item
 #*!
-Funprog GET_ITEM_IN_QTY_UNTIL_DATE_ACKNOWLEDGED(SITE, ITEM, UNTIL_DATE)
+Funprog GET_ITEM_IN_QUANTITY_UNTIL_DATE_ACKNOWLEDGED(SITE, ITEM, UNTIL_DATE)
 Value Char SITE
 Value Char ITEM
 Value Date UNTIL_DATE
@@ -701,3 +673,4 @@ Local Decimal QTY
   Next
 
 End QTY
+
