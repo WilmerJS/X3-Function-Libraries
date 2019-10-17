@@ -25,10 +25,10 @@
 # < WIST >
 #**
 #* Checks if an order line will be deliverable at the specified date, by calculating if the
-#* product quantity in stock will be enough to satisfy it based on its priority (DEMNUM).
+#* product quantity in stock will be enough to satisfy it based on its priority (XITMAVAPRIO).
 #* <pre></pre>
 #*
-#* This function takes into account order lines with a higher priority (lower DEMNUM)
+#* This function takes into account order lines with a higher priority (lower XITMAVAPRIO)
 #* than the one that is being checked, and assigns items to them first. If any stock quantity
 #* remains, the order line being checked may be delivered.
 #* <pre></pre>
@@ -66,9 +66,7 @@ Value Date XDATE
 
   DATE_CHECK_EXCESS = min(DATE_OF_NEXT_RECEIPT, LEADTIME_LIMIT) - 1
 
-  #Infbox num$(XDATE), num$(DATE_OF_NEXT_RECEIPT), num$(LEADTIME_LIMIT), num$(DATE_CHECK_EXCESS)
-
-  QTY_AVAILABLE = func XSS_STOCK.GET_ITEM_AVAILABILITY_AT_DATE_BY_PRIO([YSOQ]STOFCY, [YSOQ]ITMREF, DATE_CHECK_EXCESS, [YSOQ]DEMNUM)
+  QTY_AVAILABLE = func XSS_STOCK.GET_ITEM_AVAILABILITY_AT_DATE_BY_PRIO([YSOQ]STOFCY, [YSOQ]ITMREF, DATE_CHECK_EXCESS, [YSOQ]XITMAVAPRIO)
 
 #  If [V]GUSER = "ADMIN"
 #    Infbox "Checking if deliverable at date: " + num$(XDATE),
@@ -90,7 +88,7 @@ End 0
 #* <pre></pre>
 #*
 #* This functions takes into account lines with the same requested delivery date from all orders,
-#* and prioritizes the ones with a <b>lower order number</b>.
+#* and prioritizes the ones with a <b>lower XITMAVAPRIO</b>.
 #* <pre></pre>
 #*
 #* @param ORDER_NUM Order number
@@ -112,7 +110,7 @@ Value Integer SEQUENCE
   Local Date LEADTIME_LIMIT           # lead time limit
   Local Date DELIVERY_DATE            # the final delivery date
   Local Date CHECK_DATE               # variable to check whether dates are OK to deliver on
-  Local Date EARLIEST_DATE_TO_CHECK   # don't check earlier than this date. (first incoming purchase order)
+  Local Date EARLIEST_DATE_TO_CHECK   # don't check earlier than this date
 
   LEADTIME_LIMIT          = func XSS_STOCK.GET_THEORETICAL_LEADTIME_LIMIT([YSOQ]STOFCY, [YSOQ]ITMREF)
   DELIVERY_DATE           = LEADTIME_LIMIT  # start here, then check if we can deliver earlier
@@ -123,35 +121,13 @@ Value Integer SEQUENCE
 
     CHECK_DATE = max(EARLIEST_DATE_TO_CHECK, func XSS_PORDER.GET_LAST_RECEIPT_DATE_BY_ITEM([YSOQ]STOFCY, [YSOQ]ITMREF, CHECK_DATE - 1))
 
-#    If [V]GUSER = "ADMIN"
-#    Infbox "CHECKING IF ORDER: " + ORDER_NUM + ", LINE: " + num$(LINE),
-#&          "CAN BE DELIVERED AT: " + num$(CHECK_DATE)
-#    Endif
-
     If (func IS_ORDER_LINE_DELIVERABLE_AT_DATE(ORDER_NUM, LINE, SEQUENCE, CHECK_DATE))
       DELIVERY_DATE = CHECK_DATE
-#      If [V]GUSER = "ADMIN"
-#        Infbox "CHECKING IF ORDER: " + ORDER_NUM + ", LINE: " + num$(LINE),
-#&              "CAN BE DELIVERED AT: " + num$(CHECK_DATE),
-#&              "",
-#&              "Delivery date OK"
-#      Endif
     Else
-#      If [V]GUSER = "ADMIN"
-#        Infbox "CHECKING IF ORDER: " + ORDER_NUM + ", LINE: " + num$(LINE),
-#&              "CAN BE DELIVERED AT: " + num$(CHECK_DATE),
-#&              "",
-#&              "Delivery date NOT OK"
-#      Endif
       Break
     Endif
 
   Until CHECK_DATE = EARLIEST_DATE_TO_CHECK
-
-#  If [V]GUSER = "ADMIN"
-#  Infbox "ORDER: " + ORDER_NUM + ", LINE: " + num$(LINE),
-#&        "Delivery date: " + num$(DELIVERY_DATE)
-#  Endif
 
 End DELIVERY_DATE
 
@@ -200,4 +176,87 @@ Value Char ORDER_NUM
   Next
 
 End MIN_DATE
+
+
+
+
+
+
+
+
+
+# DEBUG MESSAGES IN FUNCTION BELOW
+
+###############################################################################################################
+## < WIST >
+##**
+##* Gets the first date an order line can be delivered, by returning the first date that the expected stock
+##* quantity can satisfy this order line.
+##* <pre></pre>
+##*
+##* This functions takes into account lines with the same requested delivery date from all orders,
+##* and prioritizes the ones with a <b>lower order number</b>.
+##* <pre></pre>
+##*
+##* @param ORDER_NUM Order number
+##* @param LINE Order line
+##* @param SEQUENCE Order line sequence
+##*
+##* @return The first expected delivery date
+##*!
+#Funprog GET_ORDER_LINE_DELIVERABLE_DATE(ORDER_NUM, LINE, SEQUENCE)
+#Value Char ORDER_NUM
+#Value Integer LINE
+#Value Integer SEQUENCE
+#
+#  If clalev([YSOQ])=0 : Local File SORDERQ [YSOQ] : Endif
+#
+#  Read [YSOQ]SOQ0 = ORDER_NUM ; LINE ; SEQUENCE
+#
+#  Local Date CUSTOMER_REQUEST_DATE    # customers requested date OR today, whichever is largest
+#  Local Date LEADTIME_LIMIT           # lead time limit
+#  Local Date DELIVERY_DATE            # the final delivery date
+#  Local Date CHECK_DATE               # variable to check whether dates are OK to deliver on
+#  Local Date EARLIEST_DATE_TO_CHECK   # don't check earlier than this date. (first incoming purchase order)
+#
+#  LEADTIME_LIMIT          = func XSS_STOCK.GET_THEORETICAL_LEADTIME_LIMIT([YSOQ]STOFCY, [YSOQ]ITMREF)
+#  DELIVERY_DATE           = LEADTIME_LIMIT  # start here, then check if we can deliver earlier
+#  CHECK_DATE              = LEADTIME_LIMIT  # lead time date won't actually be checked, CHECK_DATE is reassigned before first check
+#  EARLIEST_DATE_TO_CHECK  = date$
+#
+#  Repeat
+#
+#    CHECK_DATE = max(EARLIEST_DATE_TO_CHECK, func XSS_PORDER.GET_LAST_RECEIPT_DATE_BY_ITEM([YSOQ]STOFCY, [YSOQ]ITMREF, CHECK_DATE - 1))
+#
+##    If [V]GUSER = "ADMIN"
+##    Infbox "CHECKING IF ORDER: " + ORDER_NUM + ", LINE: " + num$(LINE),
+##&          "CAN BE DELIVERED AT: " + num$(CHECK_DATE)
+##    Endif
+#
+#    If (func IS_ORDER_LINE_DELIVERABLE_AT_DATE(ORDER_NUM, LINE, SEQUENCE, CHECK_DATE))
+#      DELIVERY_DATE = CHECK_DATE
+##      If [V]GUSER = "ADMIN"
+##        Infbox "CHECKING IF ORDER: " + ORDER_NUM + ", LINE: " + num$(LINE),
+##&              "CAN BE DELIVERED AT: " + num$(CHECK_DATE),
+##&              "",
+##&              "Delivery date OK"
+##      Endif
+#    Else
+##      If [V]GUSER = "ADMIN"
+##        Infbox "CHECKING IF ORDER: " + ORDER_NUM + ", LINE: " + num$(LINE),
+##&              "CAN BE DELIVERED AT: " + num$(CHECK_DATE),
+##&              "",
+##&              "Delivery date NOT OK"
+##      Endif
+#      Break
+#    Endif
+#
+#  Until CHECK_DATE = EARLIEST_DATE_TO_CHECK
+#
+##  If [V]GUSER = "ADMIN"
+##  Infbox "ORDER: " + ORDER_NUM + ", LINE: " + num$(LINE),
+##&        "Delivery date: " + num$(DELIVERY_DATE)
+##  Endif
+#
+#End DELIVERY_DATE
 

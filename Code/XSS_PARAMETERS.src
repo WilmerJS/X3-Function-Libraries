@@ -1,0 +1,98 @@
+# ================================================================================================ #
+#
+#   AKTIEBOLAGET SYSTEMSTÖD SVERIGE
+#
+#     Wilmer Jensen Sternehäll
+#     wilmer.sternehall@systemstod.se
+#
+#   ---
+#     Name:
+#       XSS_PARAMETERS
+#     Description:
+#       A Systemstöd function library script containing custom Sage X3 functions developed
+#       in a general, comprehensive manner meant to fit any Sage X3 installation.
+#
+#       The functions in this file are related to XSP PARAMETERS.
+#
+#
+#
+#   Copyright @ 2018 - 2020, Aktiebolaget Systemstöd Sverige
+#
+#
+# ================================================================================================ #
+
+##############################################################################################################
+# < WIST >
+#**
+#*
+#*!
+Funprog GET_VALUE(PRODUCT_ID, PARAMETER_ID, COMPANY, SITE)
+Value Char PRODUCT_ID
+Value Char PARAMETER_ID
+Value Char COMPANY
+Value Char SITE
+
+  Local File XSPVALUE [YXSPV]
+  Read [YXSPV]XSPV0 = PRODUCT_ID ; COMPANY ; SITE ; PARAMETER_ID
+
+  If fstat
+    Read [YXSPV]XSPV0 = PRODUCT_ID ; COMPANY ; "" ; PARAMETER_ID
+  Endif
+
+  If fstat
+    Read [YXSPV]XSPV0 = PRODUCT_ID ; "" ; "" ; PARAMETER_ID
+  Endif
+
+  If fstat
+    End ""
+  Endif
+
+End [YXSPV]PARAMVALUE
+
+##############################################################################################################
+#**
+#* Creates a string that describes the dimension level of a parameter value. This is used to display
+#* the dimensions for which parameter values have been assigned, in the left list (object) of the
+#* parameter program.
+#*
+#* @param COMPANY The company dimension
+#* @param SITE The date to search from
+#*
+#* @return A string value
+#*!
+Funprog MAKE_PARAMDIM(COMPANY, SITE)
+Value Char COMPANY
+Value Char SITE
+
+  Local Char PARAMDIM(250)
+
+  If COMPANY = "" : COMPANY = "null" : Endif
+  If SITE = ""    : SITE    = "null" : Endif
+
+  PARAMDIM = "Company: " + COMPANY + " Site: " + SITE
+
+End PARAMDIM
+
+
+
+Subprog QFIX()
+
+  Local File XSPVALUE [ZZZZ]
+  For [ZZZZ]
+
+    [ZZZZ]PARAMDIM = func MAKE_PARAMDIM([ZZZZ]CPY, [ZZZZ]FCY)
+    Rewrite [ZZZZ]
+
+  Next
+
+End
+
+
+
+
+
+
+
+
+
+#

@@ -125,18 +125,6 @@ Local Decimal QTY
       QTY = [YITV]CTLSTO + [YITV]PLFCTLSTO
   Endcase
 
-#  Local File STOCK  [YSTO]
-#
-#  If ITEM_STATUS <> ""
-#    Filter [YSTO] Where ITMREF = ITEM and STOFCY = SITE and STA = ITEM_STATUS or STA = "A1"
-#  Else
-#    Filter [YSTO] Where ITMREF = ITEM and STOFCY = SITE
-#  Endif
-#
-#  For [YSTO]
-#    [L]QTY += [YSTO]QTYSTU
-#  Next
-
 End [L]QTY
 
 ##############################################################################################################
@@ -276,10 +264,10 @@ End STOCK_QTY
 #**
 #* Gets an items availability at a date, decided by the priority given.
 #* <pre></pre>
-#* The priority is an order lines WIPNUM value in its corresponding line in the ORDERS table,
-#* and represents the chronological order in which all order lines are created. Any sales
-#* order lines created prior to PRIORITY (= higher priority) will deduct from the available
-#* quantity at XDATE, while lines created after PRIORITY (= lower priority) will be ignored.
+#* The priority is an order lines XITMAVAPRIO value in its SORDERQ table line,
+#* and represents the chronological order in which all order lines are availability checked. Any sales
+#* order lines checked prior to PRIORITY (= higher priority) will deduct from the available
+#* quantity at XDATE, while lines checked after PRIORITY (= lower priority) will be ignored.
 #* <pre></pre>
 #*
 #* @param SITE The relevant site
@@ -479,16 +467,21 @@ Value Char ITEM
 #-
 Local Decimal QTY
 
-  If clalev([ZSOQ])=0 : Local File SORDERQ [ZSOQ] : Endif
+  Local File ITMMVT [YITV]
+  Read [YITV]ITV0 = ITEM ; SITE
 
-  Filter [ZSOQ] Where [ZSOQ]SOQSTA < 3
-&                 and [ZSOQ]ITMREF = ITEM
+  QTY = [YITV]SALSTO
 
-  For [ZSOQ]
-    QTY += ([ZSOQ]QTYSTU - [ZSOQ]DLVQTYSTU)
-  Next
+#  If clalev([ZSOQ])=0 : Local File SORDERQ [ZSOQ] : Endif
+#
+#  Filter [ZSOQ] Where [ZSOQ]SOQSTA < 3
+#&                 and [ZSOQ]ITMREF = ITEM
+#
+#  For [ZSOQ]
+#    QTY += ([ZSOQ]QTYSTU - [ZSOQ]ODLQTYSTU - [ZSOQ]DLVQTYSTU)
+#  Next
 
-End QTY
+End [L]QTY
 
 ##############################################################################################################
 # < WIST >
@@ -517,7 +510,7 @@ Local Decimal QTY
 &                 and [ZSOQ]EXTDLVDAT <= DAT
 
   For [ZSOQ]
-    QTY += ([ZSOQ]QTYSTU - [ZSOQ]DLVQTYSTU)
+    QTY += ([ZSOQ]QTYSTU - [ZSOQ]ODLQTYSTU - [ZSOQ]DLVQTYSTU)
   Next
 
 End QTY
@@ -530,10 +523,10 @@ End QTY
 #* (labeled with status 'Firm' or 'Planned') with an end date prior or equal to the specified date.
 #*
 #* <pre></pre>
-#* The priority is an order lines WIPNUM value in its corresponding line in the ORDERS table,
-#* and represents the chronological order in which all order lines are created. Any sales
-#* order lines created prior to PRIORITY (= higher priority) will deduct from the available
-#* quantity at XDATE, while lines created after PRIORITY (= lower priority) will be ignored.
+#* The priority is an order lines XITMAVAPRIO value in its SORDERQ table line,
+#* and represents the chronological order in which all order lines are availability checked. Any sales
+#* order lines checked prior to PRIORITY (= higher priority) will deduct from the available
+#* quantity at XDATE, while lines checked after PRIORITY (= lower priority) will be ignored.
 #* <pre></pre>
 #*
 #* @param SITE The relevant site
@@ -556,10 +549,10 @@ Local Decimal QTY
   Filter [ZSOQ] Where [ZSOQ]SOQSTA < 3
 &                 and [ZSOQ]ITMREF = ITEM
 &                 and [ZSOQ]EXTDLVDAT <= DAT
-&                 and [ZSOQ]XITMAVAPRIO < PRIORITY      # TODO
+&                 and [ZSOQ]XITMAVAPRIO < PRIORITY
 
   For [ZSOQ]
-    QTY += ([ZSOQ]QTYSTU - [ZSOQ]DLVQTYSTU)
+    QTY += ([ZSOQ]QTYSTU - [ZSOQ]ODLQTYSTU - [ZSOQ]DLVQTYSTU)
   Next
 
 End QTY
@@ -568,7 +561,7 @@ End QTY
 # < WIST >
 #**
 #* Gets the total incoming quantity of an item, by summarizing the quantities
-#* of the item on all active purchase orders (labeled with status 'Firm' or 'Planned').
+#* of the item on all active purchase order lines (labeled with LINCLEFLG = 1).
 #*
 #* @param SITE The relevant site
 #* @param ITEM The item to get the quantity of
@@ -600,7 +593,7 @@ End QTY
 # < WIST >
 #**
 #* Gets the total incoming quantity of an item, by summarizing the quantities
-#* of the item on all active purchase orders (labeled with status 'Firm' or 'Planned').
+#* of the item on all active purchase order lines (labeled with LINCLEFLG = 1).
 #*
 #* @param SITE The relevant site
 #* @param ITEM The item to get the quantity of
@@ -633,8 +626,8 @@ End QTY
 # < WIST >
 #**
 #* Gets the active incoming quantity of an item until a date, by summarizing
-#* the quantities of the item on all active purchase orders (labeled with status
-#* 'Firm' or 'Planned') with an end date prior or equal to the specified date.
+#* the quantities of the item on all active purchase order lines (labeled with LINCLEFLG = 1)
+#* with an end date prior or equal to the specified date.
 #*
 #* @param SITE The relevant site
 #* @param ITEM The item to get the quantity of
@@ -669,12 +662,13 @@ End QTY
 # < WIST >
 #**
 #* Gets the active incoming quantity of an item until a date, by summarizing
-#* the quantities of the item on all active purchase orders (labeled with status
-#* 'Firm' or 'Planned') with an end date prior or equal to the specified date.
+#* the quantities of the item on all active purchase order lines (labeled with LINCLEFLG = 1)
+#* with an end date prior or equal to the specified date. Only purchase orders with an acknowledgement
+#* date are considered.
 #*
 #* @param SITE The relevant site
 #* @param ITEM The item to get the quantity of
-#* @param DAT The date up until which the incoming quantity should be calculated
+#* @param UNTIL_DATE The date up until which the incoming quantity should be calculated
 #*
 #* @return An integer value, the incoming quantity of the item
 #*!
@@ -701,3 +695,4 @@ Local Decimal QTY
   Next
 
 End QTY
+
