@@ -81,7 +81,7 @@ End FILE_COUNT
 Funprog OPEN_UPLOAD_FILE_TO(DIRECTORY)
 Value Char DIRECTORY
 
-Local Char OUTFILEDEST
+Local Char OUTFILEDEST(255)
 Local Char FILEPATH(255) : FILEPATH = filpath(DIRECTORY,"","")
 Local Char FILNAME(255)
 Local Char TMPPATH(255)
@@ -162,7 +162,7 @@ Local Integer LASTBACKSLASH_POS : LASTBACKSLASH_POS = 0
   Wend
 
   # all characters behind the last slash, but remove the extension (including the dot)
-  FILNAME = seg$(FILEPATH, LASTBACKSLASH_POS + 1, len(FILEPATH) - (len(func GET_FILE_EXTENSION(FILEPATH)) + 1))
+  FILNAME = seg$(FILEPATH, LASTBACKSLASH_POS + 1, len(FILEPATH) - (len(func GETFILEEXT(FILEPATH)) + 1))
 
 End FILNAME
 
@@ -260,9 +260,9 @@ Local Integer STAT : STAT = 0
 
   Call MOVE(FILEPATH, TMPPATH, STAT) From ORDSYS      # change file name to a temporary one to avoid download error
   Call COPCLI(TMPPATH, FILEPATH, STAT) From ORDSYS    # change back to original file name while downloading
-  Call MOVE(TMPPATH,FILEPATH, STAT) From ORDSYS
+  Call MOVE(TMPPATH, FILEPATH, STAT) From ORDSYS
 
-  If STAT =! 0
+  If STAT
     Errbox("Could not download file") Titled "Download error"
   Endif
 
@@ -278,7 +278,8 @@ End
 Subprog DELETE_FILE(FILEPATH)
 Value Char FILEPATH
 
-Local Integer ERRCODE
-
+  Local Integer ERRCODE
   ERRCODE = Delfile(FILEPATH)
+
 End ERRCODE
+

@@ -27,29 +27,67 @@
 #* Returns the date of the first upcoming receipt of an item from a purchase order, that is expected
 #* to be received on or after FROM_DATE. Returns null if no purchase order was found.
 #*
-#* @param SITE
-#* @param ITEM Order number
-#* @param FROM_DATE Order line
+#* <pre></pre>
+#*
+#* The <b>ACKNOWLEDGED_STATUS</b> parameter defines which PO lines are considered. These are the possible values:
+#* <pre>
+#* 0 = No acknowledgment needed
+#* 1 = Header must have an acknowledgment date (OCNDAT)
+#* 2 = Line must have an acknowledgment date (LINOCNDAT)
+#* </pre>
+#*
+#*
+#* @param SITE The relevant site
+#* @param ITEM The relevant item
+#* @param FROM_DATE Date to find the next receipt from
+#* @param CONTRACT_ORDERS If contract orders should be considered: 0 = no, any other value = yes
+#* @param ACKNOWLEDGED_STATUS The acknowledgment level needed to consider a PO line
 #*
 #* @return A Date value, date of next receipt
 #*!
-Funprog GET_NEXT_RECEIPT_DATE_BY_ITEM(SITE, ITEM, FROM_DATE)
+Funprog GET_NEXT_RECEIPT_DATE_BY_ITEM(SITE, ITEM, FROM_DATE, CONTRACT_ORDERS, ACKNOWLEDGED_STATUS)
 Value Char SITE
 Value Char ITEM
 Value Date FROM_DATE
+Value Integer CONTRACT_ORDERS
+Value Integer ACKNOWLEDGED_STATUS
 
 Local Date RETURN_DATE
 
   Local File PORDER  [YPOH]
   Local File PORDERQ [YPOQ]
 
-  Link [YPOQ] With [YPOH]POH0 ~= [YPOQ]POHNUM As   [YLNK]
-&             Where [YPOQ]PRHFCY = SITE
-&               and [YPOQ]ITMREF = ITEM
-&               and [YPOH]OCNDAT <> [00/00/0000]
-&               and [YPOQ]EXTRCPDAT >= FROM_DATE
-&               and [YPOQ]LINSTA <> 3
-&             Order By [YPOQ]EXTRCPDAT Asc
+  If CONTRACT_ORDERS
+    # include contract orders
+    Link [YPOQ] With [YPOH]POH0 ~= [YPOQ]POHNUM As   [YLNK]
+&               Where [YPOQ]PRHFCY = SITE
+&                 and [YPOQ]ITMREF = ITEM
+&                 and [YPOQ]EXTRCPDAT >= FROM_DATE
+&                 and [YPOQ]LINSTA <> 3
+&               Order By [YPOQ]EXTRCPDAT Asc
+
+  Else
+    # exclude contract orders
+    Link [YPOQ] With [YPOH]POH0 ~= [YPOQ]POHNUM As   [YLNK]
+&               Where [YPOQ]PRHFCY = SITE
+&                 and [YPOQ]ITMREF = ITEM
+&                 and [YPOQ]EXTRCPDAT >= FROM_DATE
+&                 and [YPOQ]POHTYP = 1
+&                 and [YPOQ]LINSTA <> 3
+&               Order By [YPOQ]EXTRCPDAT Asc
+
+  Endif
+
+  Case ACKNOWLEDGED_STATUS
+    When 0:
+      # do nothing
+    When 1:
+      Filter [YLNK] Where [YPOH]OCNDAT <> [00/00/0000]
+    When 2:
+      Filter [YLNK] Where [YPOQ]LINOCNDAT <> [00/00/0000]
+    When 3:
+      End RETURN_DATE
+  Endcase
 
   Read [YLNK] First
 
@@ -67,15 +105,29 @@ End RETURN_DATE
 #* to be received on or before UNTIL_DATE. If UNTIL_DATE is null ([00/00/0000]), it is not taken
 #* into account, and all purchase orders are considered. Returns null if no purchase order was found.
 #*
-#* @param ITEM Order number
-#* @param FROM_DATE Order line
+#* <pre></pre>
+#*
+#* The <b>ACKNOWLEDGED_STATUS</b> parameter defines which PO lines are considered. These are the possible values:
+#* <pre>
+#* 0 = No acknowledgment needed
+#* 1 = Header must have an acknowledgment date (OCNDAT)
+#* 2 = Line must have an acknowledgment date (LINOCNDAT)
+#* </pre>
+#*
+#* @param SITE The relevant site
+#* @param ITEM The relevant item
+#* @param FROM_DATE Date to find the last receipt preceding
+#* @param CONTRACT_ORDERS If contract orders should be considered: 0 = no, any other value = yes
+#* @param ACKNOWLEDGED_STATUS The acknowledgment level needed to consider a PO line
 #*
 #* @return A Date value, date of last receipt
 #*!
-Funprog GET_LAST_RECEIPT_DATE_BY_ITEM(SITE, ITEM, UNTIL_DATE)
+Funprog GET_LAST_RECEIPT_DATE_BY_ITEM(SITE, ITEM, UNTIL_DATE, CONTRACT_ORDERS, ACKNOWLEDGED_STATUS)
 Value Char SITE
 Value Char ITEM
 Value Date UNTIL_DATE
+Value Integer CONTRACT_ORDERS
+Value Integer ACKNOWLEDGED_STATUS
 
 Local Date RETURN_DATE
 
@@ -84,13 +136,37 @@ Local Date RETURN_DATE
   Local File PORDER  [YPOH]
   Local File PORDERQ [YPOQ]
 
-  Link [YPOQ] With [YPOH]POH0 ~= [YPOQ]POHNUM As   [YLNK]
-&             Where [YPOQ]PRHFCY = SITE
-&               and [YPOQ]ITMREF = ITEM
-&               and [YPOH]OCNDAT <> [00/00/0000]
-&               and [YPOQ]EXTRCPDAT <= UNTIL_DATE
-&               and [YPOQ]LINSTA <> 3
-&             Order By [YPOQ]EXTRCPDAT Desc
+  If CONTRACT_ORDERS
+    # include contract orders
+    Link [YPOQ] With [YPOH]POH0 ~= [YPOQ]POHNUM As   [YLNK]
+&               Where [YPOQ]PRHFCY = SITE
+&                 and [YPOQ]ITMREF = ITEM
+&                 and [YPOQ]EXTRCPDAT <= UNTIL_DATE
+&                 and [YPOQ]LINSTA <> 3
+&               Order By [YPOQ]EXTRCPDAT Desc
+
+  Else
+    # exclude contract orders
+    Link [YPOQ] With [YPOH]POH0 ~= [YPOQ]POHNUM As   [YLNK]
+&               Where [YPOQ]PRHFCY = SITE
+&                 and [YPOQ]ITMREF = ITEM
+&                 and [YPOQ]EXTRCPDAT <= UNTIL_DATE
+&                 and [YPOQ]POHTYP = 1
+&                 and [YPOQ]LINSTA <> 3
+&               Order By [YPOQ]EXTRCPDAT Desc
+
+  Endif
+
+  Case ACKNOWLEDGED_STATUS
+    When 0:
+      # do nothing
+    When 1:
+      Filter [YLNK] Where [YPOH]OCNDAT <> [00/00/0000]
+    When 2:
+      Filter [YLNK] Where [YPOQ]LINOCNDAT <> [00/00/0000]
+    When 3:
+      End RETURN_DATE
+  Endcase
 
   Read [YLNK] First
 
@@ -100,4 +176,50 @@ Local Date RETURN_DATE
 
 # return null date if no purchase order was found
 End RETURN_DATE
+
+##############################################################################################################
+# < WIST >
+#**
+#* Sets the expected receipt date on all lines of a purchase order to the specified date. This function does
+#* trigger any database transactions, only the field values of the mask are set.
+#*
+#* @param RCPT_DATE The new receipt date
+#*
+#*!
+Subprog SET_RCPT_DATE_LINES(RCPT_DATE)
+Value Date RCPT_DATE
+
+  Local Integer USER_INPUT
+  Local Char QTEXT(250)
+  Local Char DTEXT(250)
+
+  Case [V]GLANGUE
+    When "SWE"
+      QTEXT = "Vill du uppdatera inleveransdatum på alla rader?"
+      DTEXT = "Rader uppdaterade, tryck 'spara' för att verifiera"
+    When Default
+      QTEXT = "Update receipt date on all order lines?"
+      DTEXT = "Rows updated, press 'save' to verify"
+  Endcase
+
+  Qstbox QTEXT Using USER_INPUT
+  If USER_INPUT <> 1 : End : Endif
+
+  For I=0 To NBLIG-1
+    [M:POH2]EXTRCPDAT(I)=RCPT_DATE
+    [M:POH2]UPDFLG(I)=1
+  Next
+
+  Affzo [M:POH2]EXTRCPDAT
+  Infbox DTEXT
+
+End
+
+
+
+
+
+
+
+#######
 

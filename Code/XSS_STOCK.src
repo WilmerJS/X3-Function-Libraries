@@ -51,6 +51,30 @@ End 0
 ##############################################################################################################
 # < WIST >
 #**
+#* Gets the lead time limit of an item. The lead time limit is the date that an item first can be
+#* receieved, if ordered today.
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to return the lead time limit of
+#*
+#* @return A Date value, the date an item can be received
+#*
+#*!
+Funprog GET_LEADTIME_LIMIT(SITE, ITEM)
+Value Char SITE
+Value Char ITEM
+
+  Local File ITMFACILIT [YITF]
+  Read [YITF]ITF0 = ITEM ; SITE
+
+  LEADTIME = date$ + [YITF]OFS
+
+End LEADTIME
+
+
+##############################################################################################################
+# < WIST >
+#**
 #* Gets the theoretical lead time limit of an item. The theoretical lead time limit is whatever
 #* date is <b>further</b> in time, of:
 #*
@@ -262,47 +286,6 @@ End STOCK_QTY
 ##############################################################################################################
 # < WIST >
 #**
-#* Gets an items availability at a date, decided by the priority given.
-#* <pre></pre>
-#* The priority is an order lines XITMAVAPRIO value in its SORDERQ table line,
-#* and represents the chronological order in which all order lines are availability checked. Any sales
-#* order lines checked prior to PRIORITY (= higher priority) will deduct from the available
-#* quantity at XDATE, while lines checked after PRIORITY (= lower priority) will be ignored.
-#* <pre></pre>
-#*
-#* @param SITE The relevant site
-#* @param ITEM The item to deliver
-#* @param XDATE The date to get the item quantity of
-#* @param PRIORITY The sales order line priority to base the search on
-#*
-#* @return An integer value, the available quantity
-#*!
-Funprog GET_ITEM_AVAILABILITY_AT_DATE_BY_PRIO(SITE, ITEM, XDATE, PRIORITY)
-Value Char SITE
-Value Char ITEM
-Value Date XDATE
-Value Char PRIORITY
-#-
-Local Decimal AVAILABLE_QTY
-
-  AVAILABLE_QTY = func GET_ITEM_STOCK_QTY(SITE, ITEM, "A")
-&               - func GET_ITEM_OUT_QTY_UNTIL_DATE_BY_PRIO(SITE, ITEM, XDATE, PRIORITY)
-&               + func GET_ITEM_IN_QTY_UNTIL_DATE_ACKNOWLEDGED(SITE, ITEM, XDATE)
-
-
-#  Infbox "AVAILABILITY AT DATE: " + num$(XDATE),
-#&       "",
-#&       "I LAGER IDAG: " + num$(func GET_ITEM_STOCK_QTY(SITE, ITEM, "A")),
-#&       "UTGÅENDE (MED HÖGRE PRIO): " + num$(func GET_ITEM_OUT_QTY_UNTIL_DATE_BY_PRIO(SITE, ITEM, XDATE, PRIORITY)),
-#&       "INKOMMANDE: " + num$(func GET_ITEM_IN_QTY_UNTIL_DATE_ACKNOWLEDGED(SITE, ITEM, XDATE)),
-#&       "",
-#&       "TILLGÄNGLIGT: " + num$(AVAILABLE_QTY)
-
-End AVAILABLE_QTY
-
-##############################################################################################################
-# < WIST >
-#**
 #* Gets the total quantity of an item on sales orders with a delivery date prior to or
 #* on a date, and that isn't assigned to a pick ticket or delivery.
 #*
@@ -427,8 +410,6 @@ End COUNT
 #*
 #* @return An integer value, the item quantity with the specified allocation type
 #*!
-
-
 Funprog GET_LOC_ITEM_QTY_BY_ALLOC(SITE, LOCATION, ITEM, ALLOCATION_TYPE)
 Value Char SITE
 Value Char LOCATION
@@ -503,53 +484,11 @@ Value Date DAT
 #-
 Local Decimal QTY
 
-  If clalev([ZSOQ])=0 : Local File SORDERQ [ZSOQ] : Endif
-
-  Filter [ZSOQ] Where [ZSOQ]SOQSTA < 3
-&                 and [ZSOQ]ITMREF = ITEM
-&                 and [ZSOQ]EXTDLVDAT <= DAT
-
-  For [ZSOQ]
-    QTY += ([ZSOQ]QTYSTU - [ZSOQ]ODLQTYSTU - [ZSOQ]DLVQTYSTU)
-  Next
-
-End QTY
-
-##############################################################################################################
-# < WIST >
-#**
-#* Gets the active outgoing quantity of an item with a priority higher than the parameter PRIORITY,
-#* until a date. This is done by summarizing the quantities of the item on all active sales orders
-#* (labeled with status 'Firm' or 'Planned') with an end date prior or equal to the specified date.
-#*
-#* <pre></pre>
-#* The priority is an order lines XITMAVAPRIO value in its SORDERQ table line,
-#* and represents the chronological order in which all order lines are availability checked. Any sales
-#* order lines checked prior to PRIORITY (= higher priority) will deduct from the available
-#* quantity at XDATE, while lines checked after PRIORITY (= lower priority) will be ignored.
-#* <pre></pre>
-#*
-#* @param SITE The relevant site
-#* @param ITEM The item to get the quantity of
-#* @param DAT The date up until which the outgoing quantity should be calculated
-#* @param PRIORITY The sales order line priority to base the search on
-#*
-#* @return An integer value, the outgoing quantity of the item
-#*!
-Funprog GET_ITEM_OUT_QTY_UNTIL_DATE_BY_PRIO(SITE, ITEM, DAT, PRIORITY)
-Value Char SITE
-Value Char ITEM
-Value Date DAT
-Value Char PRIORITY
-#-
-Local Decimal QTY
-
   Local File SORDERQ [ZSOQ]
 
   Filter [ZSOQ] Where [ZSOQ]SOQSTA < 3
 &                 and [ZSOQ]ITMREF = ITEM
 &                 and [ZSOQ]EXTDLVDAT <= DAT
-&                 and [ZSOQ]XITMAVAPRIO < PRIORITY
 
   For [ZSOQ]
     QTY += ([ZSOQ]QTYSTU - [ZSOQ]ODLQTYSTU - [ZSOQ]DLVQTYSTU)
@@ -574,16 +513,45 @@ Value Char ITEM
 
 Local Decimal QTY
 
-  Local File PORDER  [YPOH]
   Local File PORDERQ [YPOQ]
 
-  Link [YPOQ] With  [YPOH]POH0 ~= [YPOQ]POHNUM As [YLNK]
-&             Where [YPOQ]PRHFCY = SITE
-&               and [YPOQ]ITMREF = ITEM
-&               and [YPOQ]LINCLEFLG = 1
+  Filter [YPOQ] Where [YPOQ]PRHFCY = SITE
+&                 and [YPOQ]ITMREF = ITEM
+&                 and [YPOQ]LINCLEFLG = 1
 &             Order By [YPOQ]EXTRCPDAT Desc
 
-  For [YLNK]
+  For [YPOQ]
+    QTY += ([YPOQ]QTYSTU - [YPOQ]RCPQTYSTU)
+  Next
+
+End QTY
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the total contracted incoming quantity of an item, by summarizing the quantities
+#* of the item on all active contract PO lines.
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to get the quantity of
+#*
+#* @return An integer value, the total incoming quantity of the item
+#*!
+Funprog GET_ITEM_IN_QTY_CONTRACTED(SITE, ITEM)
+Value Char SITE
+Value Char ITEM
+
+Local Decimal QTY
+
+  Local File PORDERQ [YPOQ]
+
+  Filter [YPOQ] Where [YPOQ]PRHFCY = SITE
+&                 and [YPOQ]ITMREF = ITEM
+&                 and [YPOQ]POHTYP = 2
+&                 and [YPOQ]LINCLEFLG = 1
+&             Order By [YPOQ]EXTRCPDAT Desc
+
+  For [YPOQ]
     QTY += ([YPOQ]QTYSTU - [YPOQ]RCPQTYSTU)
   Next
 
@@ -594,6 +562,8 @@ End QTY
 #**
 #* Gets the total incoming quantity of an item, by summarizing the quantities
 #* of the item on all active purchase order lines (labeled with LINCLEFLG = 1).
+#*
+#* Only counts the quantity of all purchase orders with an acknowledgment date (OCNDAT).
 #*
 #* @param SITE The relevant site
 #* @param ITEM The item to get the quantity of
@@ -625,6 +595,39 @@ End QTY
 ##############################################################################################################
 # < WIST >
 #**
+#* Gets the total incoming quantity of an item, by summarizing the quantities
+#* of the item on all active purchase order lines (labeled with LINCLEFLG = 1).
+#*
+#* Only counts the quantity of purchase order lines with an acknowledgment date (LINOCNDAT).
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to get the quantity of
+#*
+#* @return An integer value, the total incoming quantity of the item
+#*!
+Funprog GET_ITEM_IN_QTY_ACKNOWLEDGED_LINES(SITE, ITEM)
+Value Char SITE
+Value Char ITEM
+
+Local Decimal QTY
+
+  Local File PORDERQ [YPOQ]
+
+  Filter [YPOQ] Where [YPOQ]PRHFCY = SITE
+&                 and [YPOQ]ITMREF = ITEM
+&                 and [YPOQ]LINOCNDAT <> [00/00/0000]
+&                 and [YPOQ]LINCLEFLG = 1
+&               Order By [YPOQ]EXTRCPDAT Desc
+
+  For [YPOQ]
+    QTY += ([YPOQ]QTYSTU - [YPOQ]RCPQTYSTU)
+  Next
+
+End QTY
+
+##############################################################################################################
+# < WIST >
+#**
 #* Gets the active incoming quantity of an item until a date, by summarizing
 #* the quantities of the item on all active purchase order lines (labeled with LINCLEFLG = 1)
 #* with an end date prior or equal to the specified date.
@@ -642,17 +645,48 @@ Value Date UNTIL_DATE
 
 Local Decimal QTY
 
-  Local File PORDER  [YPOH]
   Local File PORDERQ [YPOQ]
 
-  Link [YPOQ] With  [YPOH]POH0 ~= [YPOQ]POHNUM As [YLNK]
-&             Where [YPOQ]PRHFCY = SITE
-&               and [YPOQ]ITMREF = ITEM
-&               and [YPOQ]EXTRCPDAT <= UNTIL_DATE
-&               and [YPOQ]LINCLEFLG = 1
+  Filter [YPOQ] Where [YPOQ]PRHFCY = SITE
+&                 and [YPOQ]ITMREF = ITEM
+&                 and [YPOQ]EXTRCPDAT <= UNTIL_DATE
+&                 and [YPOQ]LINCLEFLG = 1
 &             Order By [YPOQ]EXTRCPDAT Desc
 
-  For [YLNK]
+  For [YPOQ]
+    QTY += ([YPOQ]QTYSTU - [YPOQ]RCPQTYSTU)
+  Next
+
+End QTY
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the total contracted incoming quantity of an item, by summarizing the quantities
+#* of the item on all active contract PO lines.
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to get the quantity of
+#*
+#* @return An integer value, the total incoming quantity of the item
+#*!
+Funprog GET_ITEM_IN_QTY_CONTRACTED_UNTIL_DATE(SITE, ITEM, UNTIL_DATE)
+Value Char SITE
+Value Char ITEM
+Value Date UNTIL_DATE
+
+Local Decimal QTY
+
+  Local File PORDERQ [YPOQ]
+
+  Filter [YPOQ] Where [YPOQ]PRHFCY = SITE
+&                 and [YPOQ]ITMREF = ITEM
+&                 and [YPOQ]EXTRCPDAT <= UNTIL_DATE
+&                 and [YPOQ]POHTYP = 2
+&                 and [YPOQ]LINCLEFLG = 1
+&             Order By [YPOQ]EXTRCPDAT Desc
+
+  For [YPOQ]
     QTY += ([YPOQ]QTYSTU - [YPOQ]RCPQTYSTU)
   Next
 
@@ -663,8 +697,9 @@ End QTY
 #**
 #* Gets the active incoming quantity of an item until a date, by summarizing
 #* the quantities of the item on all active purchase order lines (labeled with LINCLEFLG = 1)
-#* with an end date prior or equal to the specified date. Only purchase orders with an acknowledgement
-#* date are considered.
+#* with an end date prior or equal to the specified date.
+#*
+#* Only counts the quantity of all purchase orders with an acknowledgment date (OCNDAT).
 #*
 #* @param SITE The relevant site
 #* @param ITEM The item to get the quantity of
@@ -691,6 +726,43 @@ Local Decimal QTY
 &             Order By [YPOQ]EXTRCPDAT Desc
 
   For [YLNK]
+    QTY += ([YPOQ]QTYSTU - [YPOQ]RCPQTYSTU)
+  Next
+
+End QTY
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the active incoming quantity of an item until a date, by summarizing
+#* the quantities of the item on all active purchase order lines (labeled with LINCLEFLG = 1)
+#* with an end date prior or equal to the specified date.
+#*
+#* Only counts the quantity of purchase order lines with an acknowledgment date (LINOCNDAT).
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to get the quantity of
+#* @param UNTIL_DATE The date up until which the incoming quantity should be calculated
+#*
+#* @return An integer value, the incoming quantity of the item
+#*!
+Funprog GET_ITEM_IN_QTY_UNTIL_DATE_ACKNOWLEDGED_LINES(SITE, ITEM, UNTIL_DATE)
+Value Char SITE
+Value Char ITEM
+Value Date UNTIL_DATE
+
+Local Decimal QTY
+
+  Local File PORDERQ [YPOQ]
+
+  Filter [YPOQ] Where [YPOQ]PRHFCY = SITE
+&                 and [YPOQ]ITMREF = ITEM
+&                 and [YPOQ]LINOCNDAT <> [00/00/0000]
+&                 and [YPOQ]EXTRCPDAT <= UNTIL_DATE
+&                 and [YPOQ]LINCLEFLG = 1
+&               Order By [YPOQ]EXTRCPDAT Desc
+
+  For [YPOQ]
     QTY += ([YPOQ]QTYSTU - [YPOQ]RCPQTYSTU)
   Next
 

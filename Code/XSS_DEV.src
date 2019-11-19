@@ -24,6 +24,26 @@
 ##############################################################################################################
 # < WIST >
 #**
+#* Opens an input box for the user to type a string into.
+#*
+#*!
+Funprog OPEN_INPUT_BOX(TITLE, FIELD_NAME, OBJECT_TYPE)
+Value Char TITLE
+Value Char FIELD_NAME
+Value Char OBJECT_TYPE
+
+  Local Integer OK
+  Local Char USER_INPUT(250)
+
+  Call SAICAR(USER_INPUT, TITLE, FIELD_NAME, OBJECT_TYPE, 0, 0, "", OK) From GESECRAN
+
+End USER_INPUT
+
+
+
+##############################################################################################################
+# < WIST >
+#**
 #* Adds a button to a Sage X3 window. The window will need to be validated before the button is displayed.
 #*
 #* @param WINDOW The window
@@ -72,48 +92,6 @@ Value Char BACTCODE
   Endif
 
 End fstat
-
-##############################################################################################################
-# < WIST >
-#**
-#* Checks if a Systemstöd developed product is active for this Sage X3 installation.
-#*
-#* @param PRODUCT_ID The product to check
-#*
-#* @return An integer value, 1 = active || 0 = inactive
-#*!
-Funprog IS_PRODUCT_ACTIVE(PRODUCT_ID)
-Value Char PRODUCT_ID
-
-  Local File XSPRODUCTS [YXSP]
-  Read [YXSP]XSP0 = PRODUCT_ID
-
-  If fstat
-    End 0
-  Endif
-
-  Local Tinyint RETVAL
-  RETVAL = max(0, [YXSP]ISACTIVE - 1)
-
-End RETVAL
-
-##############################################################################################################
-# < WIST >
-#**
-#* Opens an input box for the user to type a string into.
-#*
-#*!
-Funprog OPEN_INPUT_BOX(TITLE, FIELD_NAME, OBJECT_TYPE)
-Value Char TITLE
-Value Char FIELD_NAME
-Value Char OBJECT_TYPE
-
-  Local Integer OK
-  Local Char USER_INPUT(250)
-
-  Call SAICAR(USER_INPUT, TITLE, FIELD_NAME, OBJECT_TYPE, 0, 0, "", OK) From GESECRAN
-
-End USER_INPUT
 
 
 

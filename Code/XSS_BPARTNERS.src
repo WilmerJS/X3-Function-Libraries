@@ -1,9 +1,8 @@
-#<AdxTL>@(#)0.0.0.0 $Revision$
 # ================================================================================================ #
 #
-#   AKTIEBOLAGET SYSTEMSTöD SVERIGE
+#   AKTIEBOLAGET SYSTEMSTÖD SVERIGE
 #
-#     Wilmer Jensen Sternehöll
+#     Wilmer Jensen Sternehäll
 #     wilmer.sternehall@systemstod.se
 #
 #   ---
@@ -54,3 +53,4 @@ Value Char CUSTOMER
   CONTACT = [YCNT]CCNCRM
 
 End CONTACT
+

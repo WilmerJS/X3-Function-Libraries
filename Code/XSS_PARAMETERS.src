@@ -24,6 +24,38 @@
 ##############################################################################################################
 # < WIST >
 #**
+#* Checks if a Systemstöd developed product is active for this Sage X3 installation.
+#*
+#* @param PRODUCT_ID The product to check
+#*
+#* @return An integer value, 1 = active || 0 = inactive
+#*!
+Funprog IS_PRODUCT_ACTIVE(PRODUCT_ID)
+Value Char PRODUCT_ID
+
+  Local File XSPRODUCTS [YXSP]
+  Read [YXSP]XSP0 = PRODUCT_ID
+
+  If fstat
+    End 0
+  Endif
+
+  Local Tinyint RETVAL
+  RETVAL = max(0, [YXSP]ISACTIVE - 1)
+
+End RETVAL
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the value of a Systemstöd product parameter.
+#*
+#* @param PRODUCT_ID The product ID of the product the parameter belongs to
+#* @param PARAMETER_ID The parameter ID
+#* @param COMPANY The company dimension of the parameter, can be null
+#* @param SITE The site dimension of the parameter, can be null
+#*
+#* @return A parameter value, can be any type
 #*
 #*!
 Funprog GET_VALUE(PRODUCT_ID, PARAMETER_ID, COMPANY, SITE)
@@ -32,60 +64,78 @@ Value Char PARAMETER_ID
 Value Char COMPANY
 Value Char SITE
 
-  Local File XSPVALUE [YXSPV]
-  Read [YXSPV]XSPV0 = PRODUCT_ID ; COMPANY ; SITE ; PARAMETER_ID
+  Local File XX1CPARVAL [XX1CPV]
+  Local File XX1CPARAM  [XX1CP]
+
+  Read [XX1CP]XSPP0 = PRODUCT_ID ; PARAMETER_ID
+  Read [XX1CPV]XSPV0 = PRODUCT_ID ; COMPANY ; SITE ; PARAMETER_ID
 
   If fstat
-    Read [YXSPV]XSPV0 = PRODUCT_ID ; COMPANY ; "" ; PARAMETER_ID
+    Read [XX1CPV]XSPV0 = PRODUCT_ID ; COMPANY ; "" ; PARAMETER_ID
   Endif
 
   If fstat
-    Read [YXSPV]XSPV0 = PRODUCT_ID ; "" ; "" ; PARAMETER_ID
+    Read [XX1CPV]XSPV0 = PRODUCT_ID ; "" ; "" ; PARAMETER_ID
   Endif
 
   If fstat
     End ""
   Endif
 
-End [YXSPV]PARAMVALUE
+  If [XX1CP]PARAMTYPE = 2 or [XX1CP]PARAMTYPE = 4
+    End val([XX1CPV]PARAMVALUE)
+  Endif
+
+  If [XX1CP]PARAMTYPE = 3
+    End gdat$([XX1CPV]PARAMVALUE)
+  Endif
+
+End [XX1CPV]PARAMVALUE
 
 ##############################################################################################################
+# < WIST >
 #**
-#* Creates a string that describes the dimension level of a parameter value. This is used to display
-#* the dimensions for which parameter values have been assigned, in the left list (object) of the
-#* parameter program.
+#* Gets the full description of a Systemstöd product parameter.
 #*
-#* @param COMPANY The company dimension
-#* @param SITE The date to search from
+#* @param PRODUCT_ID The product ID of the product the parameter belongs to
+#* @param PARAMETER_ID The parameter ID
 #*
-#* @return A string value
+#* @return A string value, the parameter description
+#*
 #*!
-Funprog MAKE_PARAMDIM(COMPANY, SITE)
-Value Char COMPANY
-Value Char SITE
+Funprog GET_DESCRIPTION(PRODUCT_ID, PARAMETER_ID)
+Value Char PRODUCT_ID
+Value Char PARAMETER_ID
 
-  Local Char PARAMDIM(250)
+  Local File XX1CPARAM  [XX1CP]
+  Read [XX1CP]XSPP0 = PRODUCT_ID ; PARAMETER_ID
 
-  If COMPANY = "" : COMPANY = "null" : Endif
-  If SITE = ""    : SITE    = "null" : Endif
+End [XX1CP]PARAMNAME
 
-  PARAMDIM = "Company: " + COMPANY + " Site: " + SITE
+###############################################################################################################
+##**
+##* Creates a string that describes the dimension level of a parameter value. This is used to display
+##* the dimensions for which parameter values have been assigned, in the left list (object) of the
+##* parameter program.
+##*
+##* @param COMPANY The company dimension
+##* @param SITE The date to search from
+##*
+##* @return A string value
+##*!
+#Funprog MAKE_PARAMDIM(COMPANY, SITE)
+#Value Char COMPANY
+#Value Char SITE
+#
+#  Local Char PARAMDIM(250)
+#
+#  If COMPANY = "" : COMPANY = "null" : Endif
+#  If SITE = ""    : SITE    = "null" : Endif
+#
+#  PARAMDIM = "Company: " + COMPANY + " Site: " + SITE
+#
+#End PARAMDIM
 
-End PARAMDIM
-
-
-
-Subprog QFIX()
-
-  Local File XSPVALUE [ZZZZ]
-  For [ZZZZ]
-
-    [ZZZZ]PARAMDIM = func MAKE_PARAMDIM([ZZZZ]CPY, [ZZZZ]FCY)
-    Rewrite [ZZZZ]
-
-  Next
-
-End
 
 
 
@@ -96,3 +146,4 @@ End
 
 
 #
+

@@ -289,7 +289,7 @@ End
 #*
 #* @param MENU The local menu number
 #* @param INDEX The index in the local menu
-#* @param The language to return the text in
+#* @param LANGUAGE The language to return the text in
 #*
 #* @return A string value, the local menu message
 #*
