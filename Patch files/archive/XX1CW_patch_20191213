@@ -1,0 +1,2427 @@
+1,"","ENG/SWE","1","XX1CX","X3","5",
+2,"TRT","XSS_BPARTNERS",""
+#<AdxTL>@(#)0.0.0.0 $Revision$
+# ================================================================================================ #
+#
+#   AKTIEBOLAGET SYSTEMSTÖD SVERIGE
+#
+#     Wilmer Jensen Sternehäll
+#     wilmer.sternehall@systemstod.se
+#
+#   ---
+#     Name:
+#       XSS_BPARTNERS
+#     Description:
+#       A Systemstöd function library script containing custom Sage X3 functions developed
+#       in a general, comprehensive manner meant to fit any Sage X3 installation.
+#
+#       The functions in this file are related to BUSINESS PARTNERS.
+#
+#
+#
+#   Copyright @ 2018 - 2020, Aktiebolaget Systemstöd Sverige
+#
+#
+# ================================================================================================ #
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets a customers default delivery contact, that by default is assigned to the delivery address on an order.
+#*
+#* @param CUSTOMER The customer of which the default delivery contact should be fetched from
+#*
+#* @return A string value, the default delivery contact
+#*
+#*!
+Funprog GET_CUSTOMER_DEFAULT_DELIVERY_CONTACT(CUSTOMER)
+Value Char CUSTOMER
+
+  Local File BPCUSTOMER [YBPC]
+  Local File CONTACT [YCNT]
+
+  Local Char CONTACT(50)
+
+  Read [YBPC]BPC0 = CUSTOMER
+  Filter [YCNT] Where BPATYP = 1 and BPANUM = CUSTOMER and BPAADD = [YBPC]BPDADD
+&               Order By CCNCRM Asc
+
+  If rowcount([YCNT]) > 0
+    Read [YCNT] First
+  Else
+    Filter [YCNT]
+    Read [YCNT]CNT0 = 1 ; CUSTOMER ; [YBPC]CNTNAM
+  Endif
+
+  CONTACT = [YCNT]CCNCRM
+
+End CONTACT
+
+**********
+7,"TRT","XSS_BPARTNERS",""
+2,"TRT","XSS_DEV",""
+#<AdxTL>@(#)0.0.0.0 $Revision$
+# ================================================================================================ #
+#
+#   AKTIEBOLAGET SYSTEMSTÖD SVERIGE
+#
+#     Wilmer Jensen Sternehäll
+#     wilmer.sternehall@systemstod.se
+#
+#   ---
+#     Name:
+#       XSS_DEV
+#     Description:
+#       A Systemstöd function library script containing custom Sage X3 functions developed
+#       in a general, comprehensive manner meant to fit any Sage X3 installation.
+#
+#       The functions in this file are related to DEVELOPMENT MANAGEMENT.
+#
+#
+#
+#   Copyright @ 2018 - 2020, Aktiebolaget Systemstöd Sverige
+#
+#
+# ================================================================================================ #
+
+##############################################################################################################
+# < WIST >
+#**
+#* Opens an input box for the user to type a string into.
+#*
+#*!
+Funprog OPEN_INPUT_BOX(TITLE, FIELD_NAME, OBJECT_TYPE)
+Value Char TITLE
+Value Char FIELD_NAME
+Value Char OBJECT_TYPE
+
+  Local Integer OK
+  Local Char USER_INPUT(250)
+
+  Call SAICAR(USER_INPUT, TITLE, FIELD_NAME, OBJECT_TYPE, 0, 0, "", OK) From GESECRAN
+
+End USER_INPUT
+
+
+
+##############################################################################################################
+# < WIST >
+#**
+#* Adds a button to a Sage X3 window. The window will need to be validated before the button is displayed.
+#*
+#* @param WINDOW The window
+#* @param BTYPE Button type
+#* @param BCODE Button code
+#* @param BVALIDATING 1 = Non-validating, 2 = Validating
+#* @param BTEXT The ID of the dictionary message to be used as the button text
+#* @param BACTION The action that the button should call
+#* @param BACTCODE Activity code for the button
+#*
+#* @return An integer value, fstat value of the transaction (non-zero means error occured)
+#*
+#*!
+Funprog ADD_WINDOW_BUTTON(WINDOW, BTYPE, BCODE, BVALIDATING, BTEXT, BACTION, BACTCODE)
+Value Char WINDOW
+Value Shortint BTYPE
+Value Char BCODE
+Value Tinyint BVALIDATING
+Value Integer BTEXT
+Value Char BACTION
+Value Char BACTCODE
+
+  Local File AWINBOUT [YAWT]
+  Filter [YAWT] Where [YAWT]WIN = WINDOW Order By [YAWT]NUM Desc
+  Read [YAWT] First
+
+  Local Shortint NEXT_BNUM
+  NEXT_BNUM = [YAWT]NUM
+
+  Raz [YAWT]
+
+  Trbegin [YAWT]
+  [YAWT]WIN         = WINDOW
+  [YAWT]NUM         = NEXT_BNUM
+  [YAWT]CODBOUT     = BCODE
+  [YAWT]TYPBOUT     = BTYPE
+  [YAWT]VALBOUT     = BVALIDATING
+  [YAWT]TXTBOUT     = BTEXT
+  [YAWT]ACTBOUT     = BACTION
+  [YAWT]CODACTBOUT  = BACTCODE
+
+  Write [YAWT]
+
+  If fstat  : Rollback
+  Else      : Commit
+  Endif
+
+End fstat
+
+##############################################################################################################
+# < WIST >
+#**
+#* Starts a progress (loading) bar.
+#*
+#*!
+Subprog PROGRESS_BAR_START(TITLE)
+Value Char TITLE
+  Call OUVRE_VLC(TITLE, "", "") From GESECRAN
+End
+
+##############################################################################################################
+# < WIST >
+#**
+#* Ends a progress (loading) bar.
+#*
+#*!
+Subprog PROGRESS_BAR_END()
+  Call FERME_VLC() From GESECRAN
+End
+
+##############################################################################################################
+# < WIST >
+#**
+#* Updates the active progress (loading) bar with a new process text and completion level (percent).
+#*
+#*!
+Subprog PROGRESS_BAR_UPDATE(PROCESS, PERCENT)
+Value Char PROCESS
+Value Integer PERCENT
+  Call AFF_VLC(PROCESS, num$(PERCENT)) From GESECRAN
+End
+
+##############################################################################################################
+# < WIST >
+#**
+#* Updates the active progress (loading) bar with a new process text and completion level (percent).
+#*
+#*!
+Subprog PRINT_REPORT()
+
+    #Variable for report parameters
+    Local Char    TBPAR_BP(15)(1..50),TBVAL_BP(30)(1..50)
+
+    If !clalev([F:SDH]) : Local File SINVOICE [F:SIH] : Endif
+    Read [F:SIH]SIH0 = "10068000001"
+
+
+    #Set parameters value
+    TBPAR_BP(1) = "Livraisondeb"  : TBVAL_BP(1) = [F:SIH]NUM
+    TBPAR_BP(2) = "Livraisonfin"  : TBVAL_BP(2) = [F:SIH]NUM
+    TBPAR_BP(3) = "numedt"        : TBVAL_BP(3) = "0" #num$(ARM_REQ_BP)
+    TBPAR_BP(4) = "sitedeb"       : TBVAL_BP(4) = [F:SIH]FCY
+    TBPAR_BP(5) = "sitefin"       : TBVAL_BP(5) = [F:SIH]FCY
+    TBPAR_BP(6) = "clientdeb"     : TBVAL_BP(6) = [F:SIH]BPR
+    TBPAR_BP(7) = "clientfin"     : TBVAL_BP(7) = [F:SIH]BPR
+    TBPAR_BP(8) = "codimp"        : TBVAL_BP(8) = "2"
+
+
+    #Call at the standard X3 Subprog to execute the report
+    #The Subprog ETAT needs these parameters:
+    #1 - "BONLIV" Name of the report (is not the name of the rpt Crystal file)
+    #2 - "ANTEPRIMA" Name of the destination
+    #3 - "FRA" Language, leave this blanc to use the default language
+    #4 - 0 or 1 it shows or not the info message 'print executed'
+    #5 - TBPAR_BP
+    #6 - TBVAL_BP
+
+    # Run the report with the info message 'print executed'
+    #Call ETAT("BONLIV","VTPRTCED01","",1,"",TBPAR_BP,TBVAL_BP) From AIMP3
+
+    # Run the report without the info message
+    Call ETAT("SBONFACP2","PREVISU","",1,"",TBPAR_BP,TBVAL_BP) From AIMP3
+
+
+End
+
+
+
+#
+
+**********
+7,"TRT","XSS_DEV",""
+2,"TRT","XSS_FILES",""
+#<AdxTL>@(#)0.0.0.0 $Revision$
+# ================================================================================================ #
+#
+#   AKTIEBOLAGET SYSTEMSTÖD SVERIGE
+#
+#     Wilmer Jensen Sternehäll
+#     wilmer.sternehall@systemstod.se
+#
+#   ---
+#     Name:
+#       XSS_FILES
+#     Description:
+#       A Systemstöd function library script containing custom Sage X3 functions developed
+#       in a general, comprehensive manner meant to fit any Sage X3 installation.
+#
+#       The functions in this file are related to FILE MANAGEMENT.
+#
+#
+#
+#   Copyright @ 2018 - 2020, Aktiebolaget Systemstöd Sverige
+#
+#
+# ================================================================================================ #
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the file names of all the files in the given directory.
+#*
+#* @param DIRECTORY The directory of the files to be returned.
+#* @param FILE_LIST The array variable to be filled with the found file names. This is a return value.
+#* @param TEXT_FILTER If this is not null, files will only be returned if their name contains this string. Otherwise files are only returned if they are not empty.
+#*
+#* @return An integer value, the amount of files found
+#*
+#*!
+Funprog GET_FILES_FROM_DIRECTORY(DIRECTORY, FILE_LIST, TEXT_FILTER)
+Value Char DIRECTORY
+Variable Char FILE_LIST()
+Value Char TEXT_FILTER
+
+Local Char DIR(250)
+Local Char FILE_DRAFT(250)(1..dim(FILE_LIST) + 1)
+Local Integer FILE_AMOUNT
+Local Integer FILE_COUNT
+Local Integer I
+
+  DIR = filpath(DIRECTORY,"","")
+  Call SYSTEME2(adxmac(0), "lsadx"-DIR, "", FILE_AMOUNT, FILE_DRAFT) From ORDSYS
+
+  For I = 1 To FILE_AMOUNT
+
+    If FILE_COUNT > dim(FILE_LIST) - 1
+      Errbox "Array variable cannot store all the files: too few dimensions", "Please contact Systemstöd"
+      End FILE_COUNT
+    Endif
+
+    If TEXT_FILTER <> ""
+      If instr(1, FILE_DRAFT(I), TEXT_FILTER)
+        FILE_LIST(FILE_COUNT) = FILE_DRAFT(I)
+        FILE_COUNT += 1
+      Endif
+    Else
+      If filinfo(DIR + "\" + FILE_DRAFT(I), 7) > 0
+        FILE_LIST(FILE_COUNT) = FILE_DRAFT(I)
+        FILE_COUNT += 1
+      Endif
+    Endif
+
+  Next
+
+End FILE_COUNT
+
+##############################################################################################################
+# < WIST >
+#**
+#* Opens a selection window for the user to choose a client file to upload to the X3 Storage Area. File is first uploaded to TMP,
+#* and then moved to the specified directory.
+#*
+#* @param DIRECTORY The directory to which the file will be moved after it is uploaded
+#*!
+Funprog OPEN_UPLOAD_FILE_TO(DIRECTORY)
+Value Char DIRECTORY
+
+Local Char OUTFILEDEST(255)
+Local Char FILEPATH(255) : FILEPATH = filpath(DIRECTORY,"","")
+Local Char FILNAME(255)
+Local Char TMPPATH(255)
+Local Integer STAT
+
+  # prompt user upload to the 'TMP' folder
+  Call COPSRV(FILNAME,TMPPATH,STAT) From ORDSYS
+
+  #   -   error handling
+  If FILNAME = ""
+    Infbox("No file selected.")
+    End
+  Endif
+
+  #   -   error handling
+  If STAT = !0
+    Infbox("File could not be uploaded to the server.")
+    End
+  Endif
+
+  # only move file to target directory if target directory is not 'TMP'
+  If DIRECTORY <> "TMP" and DIRECTORY <> "tmp"
+    Call MOVE(TMPPATH, FILEPATH, STAT) From ORDSYS
+  Endif
+
+  OUTFILEDEST = FILEPATH + "\" + FILNAME
+
+  #   -   error handling
+  If STAT = !0
+    Infbox("File could not be placed in the given directory. It was automatically placed in 'tmp'-folder.")
+    End
+  Endif
+
+  Infbox(FILNAME + " successfully uploaded to: " + FILEPATH)
+
+End OUTFILEDEST
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the extension of a file by returning all characters behind (excluding) the last dot (.).
+#*
+#* @param TARGET_FILE The file to return the extension of
+#*
+#* @return A string value, containing the extension (file format) of the given file
+#*!
+Funprog GET_FILE_EXTENSION(TARGET_FILE)
+Value Char TARGET_FILE
+
+Local Char FILEEXT(10)
+Local Integer LASTDOT_POS : LASTDOT_POS = 0
+
+  While instr(LASTDOT_POS + 1, TARGET_FILE, ".") <> 0
+    LASTDOT_POS = instr(LASTDOT_POS + 1, TARGET_FILE, ".")
+  Wend
+
+  FILEEXT = seg$(TARGET_FILE, LASTDOT_POS + 1, len(TARGET_FILE))
+
+End FILEEXT
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the name of the file from a filepath, if the filepath points to a file.
+#*
+#* @param FILEPATH The filepath of the file to get the name of
+#*
+#* @return A string value, containing the name of the file on the given filepath
+#*!
+Funprog GET_FILE_NAME(FILEPATH)
+Value Char FILEPATH
+
+Local Char FILNAME(250)
+Local Integer LASTBACKSLASH_POS : LASTBACKSLASH_POS = 0
+
+  While instr(LASTBACKSLASH_POS + 1, FILEPATH, "\") <> 0
+    LASTBACKSLASH_POS = instr(LASTBACKSLASH_POS + 1, FILEPATH, "\")
+  Wend
+
+  # all characters behind the last slash, but remove the extension (including the dot)
+  FILNAME = seg$(FILEPATH, LASTBACKSLASH_POS + 1, len(FILEPATH) - (len(func GETFILEEXT(FILEPATH)) + 1))
+
+End FILNAME
+
+##############################################################################################################
+# < WIST >
+#**
+#* Imports a file through an import template.
+#*
+#* @param TEMPLATE The import template to be used
+#* @param FILE_PATH The filepath of the file to be imported
+#* @param SHOW_LOG If non-zero, displays the log for the import to the user
+#*
+#*!
+Subprog IMPORT(TEMPLATE, FILE_PATH, SHOW_LOG)
+Value Char TEMPLATE
+Value Char FILE_PATH
+Value Tinyint SHOW_LOG
+
+  Call OUVRE_TRACE("File import") From LECFIC           # OPEN LOG FILE
+
+  Call TEMPON("Import in progress") From GESECRAN
+  Call IMPORTSIL(TEMPLATE, FILE_PATH) From GIMPOBJ      # IMPORT
+  Call TEMPOFF From GESECRAN
+
+  Call FERME_TRACE From LECFIC                          # CLOSE LOG FILE
+
+  If SHOW_LOG
+    Call LEC_TRACE From LECFIC                          # DISPLAY LOG
+  Endif
+
+End
+
+##############################################################################################################
+# < WIST >
+#**
+#* Adds a file to the given objects (functions) attachments.
+#*
+#* @param OBJECT Type of object (function) to add attachment to, e.g. SOH (sales order)
+#* @param OBJECT_ID Identification of the specific object, e.g. should match SOHNUM if object is SOH
+#* @param FILELOCATION File location of the file to attach - format is: [FILEDIR]\filename.fileext
+#* @param FILETYPE Type of file - see all types in misc. table '902'
+#*
+#*!
+Subprog ADD_ATTACHMENT(OBJECT, OBJECT_ID, FILELOCATION, FILETYPE)
+Value Char OBJECT
+Value Char OBJECT_ID
+#Value Char IDENT2
+Value Char FILELOCATION
+Value Char FILETYPE
+
+Local File AOBJTXT[ATT]
+Local Integer ATTCOUNT : ATTCOUNT = 1
+Local Char NEXTID(3)
+
+  Filter [ATT] Where ABREV = OBJECT and IDENT1 = OBJECT_ID
+
+  # - create 3 digit id code for next attachment
+  # - e.g. if 2 attachments already exists, the new one will have id '003'
+  For [ATT]
+    ATTCOUNT += 1
+  Next
+  NEXTID = format$("N0:3",num$(ATTCOUNT))   # fill string with '0' until 3rd character, where ATTCOUNT is added
+
+  Trbegin [ATT]
+    [ATT]ABREV = OBJECT
+    [ATT]IDENT1 = OBJECT_ID
+    [ATT]IDENT2 = ""
+    [ATT]IDENT3 = NEXTID
+    [ATT]NAM = FILELOCATION
+    [ATT]TYPDOC = FILETYPE
+  Write
+  If fstat = 0
+    Commit
+    Infbox "Added file to attachments" Titled "Attachments"
+  Else
+    Rollback
+    Errbox "Could not add file to attachments" Titled "Attachments"
+  Endif
+End
+
+##############################################################################################################
+# < WIST >
+#**
+#* Downloads a file in the users browser.
+#*
+#* @param FILEPATH Filepath of the file to be downloaded
+#*!
+Subprog DOWNLOAD_FILE(FILEPATH)
+Value Char FILEPATH
+
+Local Char TMPPATH(250)
+Local Integer STAT : STAT = 0
+
+  TMPPATH = filpath("TMP", "tmp_" + uuid$, func GET_FILE_EXTENSION(FILEPATH))
+
+  Call MOVE(FILEPATH, TMPPATH, STAT) From ORDSYS      # change file name to a temporary one to avoid download error
+  Call COPCLI(TMPPATH, FILEPATH, STAT) From ORDSYS    # change back to original file name while downloading
+  Call MOVE(TMPPATH, FILEPATH, STAT) From ORDSYS
+
+  If STAT
+    Errbox("Could not download file") Titled "Download error"
+  Endif
+
+End
+
+##############################################################################################################
+# < WIST >
+#**
+#* Deletes a file from the server.
+#*
+#* @param FILEPATH Filepath of the file to be deleted
+#*!
+Subprog DELETE_FILE(FILEPATH)
+Value Char FILEPATH
+
+  Local Integer ERRCODE
+  ERRCODE = Delfile(FILEPATH)
+
+End ERRCODE
+
+**********
+7,"TRT","XSS_FILES",""
+2,"TRT","XSS_GFILE",""
+#<AdxTL>@(#)0.0.0.0 $Revision$
+# ==================================================================================== #
+#
+#   AKTIEBOLAGET SYSTEMSTÖD SVERIGE
+#
+#     Wilmer Jensen Sternehäll
+#     wilmer.sternehall@systemstod.se
+#
+#   ---
+#     Name:
+#       XSS_GFILE
+#     Description:
+#       A script containing functions for handling 'GFILES'.
+#
+#       GFILES are indexes of array string variables pointing to files in the X3
+#       Storage Area. These variables enable access to specified files from anywhere.
+#       They are identified by a unique index, which is also the array index of which
+#       they are stored in.
+#
+#
+#   ---
+#     Contributors:
+#       Wilmer Jensen Sternehäll  (WIST)
+#
+#
+#
+#
+#     Copyright @ 2018 - 2019, Aktiebolaget Systemstöd Sverige
+#
+#
+# ==================================================================================== #
+
+
+##########################################################################################
+# < WIST >
+#**
+#* Declares five global array variables, ready to be assigned values pointing to specific files using the ADD_GFILE function.
+#*
+#* This function is automatically handled, and does not need to be called by the developer.
+#*
+#*!
+  Subprog DECLARE_GFILEVARS()
+    Global Char GFILENAM(250)(1..20)
+    Global Char GFILEDIR(20)(1..20)
+    Global Char GFILEEXT(10)(1..20)
+    Global Char GFILELOC(250)(1..20)
+    Global Char GFILEPATH(250)(1..20)
+  End
+
+##########################################################################################
+# < WIST >
+#**
+#* Kills global file variables
+#*
+#*!
+  Subprog KILL_GFILEVARS()
+    Kill GFILENAM, GFILEDIR, GFILEEXT, GFILELOC, GFILEPATH
+  End
+
+##########################################################################################
+# < WIST >
+#**
+#* Assigns an index of the GFILE variables to point to a specific file, so it can be accessed with ease from anywhere.
+#*
+#* @param FILEDIR Directory for the file
+#* @param FILENAM Name of the file
+#* @param FILEEXT Extension of the file
+#*
+#* @return The index position of the files data in the GFILE array variables.
+#*!
+  Funprog ADD_GFILE(FILEDIR, FILENAM, FILEEXT)
+    Value Char FILEDIR
+    Value Char FILENAM
+    Value Char FILEEXT
+
+    Local Integer INDEX
+
+    If dim(GFILENAM) < 0
+      Call DECLARE_GFILEVARS()
+    Endif
+
+    INDEX = find("", GFILENAM)
+
+    GFILENAM(INDEX)  = FILENAM
+    GFILEDIR(INDEX)  = FILEDIR
+    GFILEEXT(INDEX)  = FILEEXT
+    GFILELOC(INDEX)  = "[" + FILEDIR + "]/" + FILENAM + "." + FILEEXT
+    GFILEPATH(INDEX) = filpath(FILEDIR, FILENAM, FILEEXT)
+
+  End INDEX
+
+##########################################################################################
+# < WIST >
+#**
+#* Nulls an index of the GFILE variables, so they can be assigned with another file.
+#*
+#* @param INDEX Index of the GFILE variables to be erased.
+#*
+#*!
+  Subprog REMOVE_GFILE(INDEX)
+    Value Integer INDEX
+
+    Raz GFILENAM(INDEX), GFILEDIR(INDEX), GFILEEXT(INDEX), GFILELOC(INDEX), GFILEPATH(INDEX)
+  End
+
+**********
+7,"TRT","XSS_GFILE",""
+2,"TRT","XSS_PARAMETERS",""
+#<AdxTL>@(#)0.0.0.0 $Revision$
+# ================================================================================================ #
+#
+#   AKTIEBOLAGET SYSTEMSTÖD SVERIGE
+#
+#     Wilmer Jensen Sternehäll
+#     wilmer.sternehall@systemstod.se
+#
+#   ---
+#     Name:
+#       XSS_PARAMETERS
+#     Description:
+#       A Systemstöd function library script containing custom Sage X3 functions developed
+#       in a general, comprehensive manner meant to fit any Sage X3 installation.
+#
+#       The functions in this file are related to XSP PARAMETERS.
+#
+#
+#
+#   Copyright @ 2018 - 2020, Aktiebolaget Systemstöd Sverige
+#
+#
+# ================================================================================================ #
+
+##############################################################################################################
+# < WIST >
+#**
+#* Checks if a Systemstöd developed product is active for this Sage X3 installation.
+#*
+#* @param PRODUCT_ID The product to check
+#*
+#* @return An integer value, 1 = active || 0 = inactive
+#*!
+Funprog IS_PRODUCT_ACTIVE(PRODUCT_ID)
+Value Char PRODUCT_ID
+
+  Local File XSPRODUCTS [YXSP]
+  Read [YXSP]XSP0 = PRODUCT_ID
+
+  If fstat
+    End 0
+  Endif
+
+  Local Tinyint RETVAL
+  RETVAL = max(0, [YXSP]ISACTIVE - 1)
+
+End RETVAL
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the value of a Systemstöd product parameter.
+#*
+#* @param PRODUCT_ID The product ID of the product the parameter belongs to
+#* @param PARAMETER_ID The parameter ID
+#* @param COMPANY The company dimension of the parameter, can be null
+#* @param SITE The site dimension of the parameter, can be null
+#*
+#* @return A parameter value, can be any type
+#*
+#*!
+Funprog GET_VALUE(PRODUCT_ID, PARAMETER_ID, COMPANY, SITE)
+Value Char PRODUCT_ID
+Value Char PARAMETER_ID
+Value Char COMPANY
+Value Char SITE
+
+  Local File XX1CPARVAL [XX1CPV]
+  Local File XX1CPARAM  [XX1CP]
+
+  Read [XX1CP]XSPP0 = PRODUCT_ID ; PARAMETER_ID
+  Read [XX1CPV]XSPV0 = PRODUCT_ID ; COMPANY ; SITE ; PARAMETER_ID
+
+  If fstat
+    Read [XX1CPV]XSPV0 = PRODUCT_ID ; COMPANY ; "" ; PARAMETER_ID
+  Endif
+
+  If fstat
+    Read [XX1CPV]XSPV0 = PRODUCT_ID ; "" ; "" ; PARAMETER_ID
+  Endif
+
+  If fstat
+    End ""
+  Endif
+
+  If [XX1CP]PARAMTYPE = 2 or [XX1CP]PARAMTYPE = 4
+    End val([XX1CPV]PARAMVALUE)
+  Endif
+
+  If [XX1CP]PARAMTYPE = 3
+    End gdat$([XX1CPV]PARAMVALUE)
+  Endif
+
+End [XX1CPV]PARAMVALUE
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the full description of a Systemstöd product parameter.
+#*
+#* @param PRODUCT_ID The product ID of the product the parameter belongs to
+#* @param PARAMETER_ID The parameter ID
+#*
+#* @return A string value, the parameter description
+#*
+#*!
+Funprog GET_DESCRIPTION(PRODUCT_ID, PARAMETER_ID)
+Value Char PRODUCT_ID
+Value Char PARAMETER_ID
+
+  Local File XX1CPARAM  [XX1CP]
+  Read [XX1CP]XSPP0 = PRODUCT_ID ; PARAMETER_ID
+
+End [XX1CP]PARAMNAME
+
+###############################################################################################################
+##**
+##* Creates a string that describes the dimension level of a parameter value. This is used to display
+##* the dimensions for which parameter values have been assigned, in the left list (object) of the
+##* parameter program.
+##*
+##* @param COMPANY The company dimension
+##* @param SITE The date to search from
+##*
+##* @return A string value
+##*!
+#Funprog MAKE_PARAMDIM(COMPANY, SITE)
+#Value Char COMPANY
+#Value Char SITE
+#
+#  Local Char PARAMDIM(250)
+#
+#  If COMPANY = "" : COMPANY = "null" : Endif
+#  If SITE = ""    : SITE    = "null" : Endif
+#
+#  PARAMDIM = "Company: " + COMPANY + " Site: " + SITE
+#
+#End PARAMDIM
+
+
+
+
+
+
+
+
+
+
+#
+
+**********
+7,"TRT","XSS_PARAMETERS",""
+2,"TRT","XSS_PAYMENT",""
+#<AdxTL>@(#)0.0.0.0 $Revision$
+# ================================================================================================ #
+#
+#   AKTIEBOLAGET SYSTEMSTÖD SVERIGE
+#
+#     Wilmer Jensen Sternehäll
+#     wilmer.sternehall@systemstod.se
+#
+#   ---
+#     Name:
+#       XSS_PAYMENT
+#     Description:
+#       A Systemstöd function library script containing custom Sage X3 functions developed
+#       in a general, comprehensive manner meant to fit any Sage X3 installation.
+#
+#       The functions in this file are related to PAYMENT MANAGEMENT.
+#
+#
+#
+#   Copyright @ 2018 - 2020, Aktiebolaget Systemstöd Sverige
+#
+#
+# ================================================================================================ #
+
+##############################################################################################################
+# < WIST >
+#**
+#* Returns a reference from each line on the specified payment. If a line corresponds to a
+#* purchase order, the order number is returned. If the line corresponds to an invoice, the OCR
+#* (or the suppliers order number, if there is no OCR) is returned.
+#*
+#* @param PAYMENT_NUMBER The relevant payment
+#*
+#* @return A string value, all the references separated by a comma and a space
+#*!
+Funprog GET_REFERENCES_FROM_PAYMENT(PAYMENT_NUMBER)
+Value Char PAYMENT_NUMBER
+
+  # old string for bank file definition
+  # string$([F:PIH]XOCR<>"",[F:PIH]XOCR)+string$([F:PIH]XOCR="",[F:PIH]BPRVCR)
+
+  Local File PAYMENTD [YPYD]
+  Local File PINVOICE [YPIH]
+
+  Local Char REFERENCE_STRING(250)
+
+  Filter [YPYD] Where [YPYD]NUM = PAYMENT_NUMBER
+
+  For [YPYD]
+
+    Case [YPYD]IPTTYP
+      When 2
+
+        REFERENCE_STRING += [YPYD]VCRNUM
+
+      When Default
+
+        Read [YPIH]PIH0 = [YPYD]VCRNUM
+        If [YPIH]XOCR <> ""
+          REFERENCE_STRING += [YPIH]XOCR
+        Else
+          REFERENCE_STRING += [YPIH]BPRVCR
+        Endif
+
+    Endcase
+
+    REFERENCE_STRING += ", "
+
+  Next
+
+  # remove the last comma and space
+  REFERENCE_STRING = left$(REFERENCE_STRING, len(REFERENCE_STRING) - 2)
+
+End REFERENCE_STRING
+
+**********
+7,"TRT","XSS_PAYMENT",""
+2,"TRT","XSS_PORDER",""
+#<AdxTL>@(#)0.0.0.0 $Revision$
+# ================================================================================================ #
+#
+#   AKTIEBOLAGET SYSTEMSTÖD SVERIGE
+#
+#     Wilmer Jensen Sternehäll
+#     wilmer.sternehall@systemstod.se
+#
+#   ---
+#     Name:
+#       XSS_PORDER
+#     Description:
+#       A Systemstöd function library script containing custom Sage X3 functions developed
+#       in a general, comprehensive manner meant to fit any Sage X3 installation.
+#
+#       The functions in this file are related to PURCHASE ORDER MANAGEMENT.
+#
+#
+#
+#   Copyright @ 2018 - 2020, Aktiebolaget Systemstöd Sverige
+#
+#
+# ================================================================================================ #
+
+##############################################################################################################
+# < WIST >
+#**
+#* Returns the date of the first upcoming receipt of an item from a purchase order, that is expected
+#* to be received on or after FROM_DATE. Returns null if no purchase order was found.
+#*
+#* <pre></pre>
+#*
+#* The <b>ACKNOWLEDGED_STATUS</b> parameter defines which PO lines are considered. These are the possible values:
+#* <pre>
+#* 0 = No acknowledgment needed
+#* 1 = Header must have an acknowledgment date (OCNDAT)
+#* 2 = Line must have an acknowledgment date (LINOCNDAT)
+#* </pre>
+#*
+#*
+#* @param SITE The relevant site
+#* @param ITEM The relevant item
+#* @param FROM_DATE Date to find the next receipt from
+#* @param CONTRACT_ORDERS If contract orders should be considered: 0 = no, any other value = yes
+#* @param ACKNOWLEDGED_STATUS The acknowledgment level needed to consider a PO line
+#*
+#* @return A Date value, date of next receipt
+#*!
+Funprog GET_NEXT_RECEIPT_DATE_BY_ITEM(SITE, ITEM, FROM_DATE, CONTRACT_ORDERS, ACKNOWLEDGED_STATUS)
+Value Char SITE
+Value Char ITEM
+Value Date FROM_DATE
+Value Integer CONTRACT_ORDERS
+Value Integer ACKNOWLEDGED_STATUS
+
+Local Date RETURN_DATE
+
+  Local File PORDER  [YPOH]
+  Local File PORDERQ [YPOQ]
+
+  If CONTRACT_ORDERS
+    # include contract orders
+    Link [YPOQ] With [YPOH]POH0 ~= [YPOQ]POHNUM As   [YLNK]
+&               Where [YPOQ]PRHFCY = SITE
+&                 and [YPOQ]ITMREF = ITEM
+&                 and [YPOQ]EXTRCPDAT >= FROM_DATE
+&                 and [YPOQ]LINSTA <> 3
+&               Order By [YPOQ]EXTRCPDAT Asc
+
+  Else
+    # exclude contract orders
+    Link [YPOQ] With [YPOH]POH0 ~= [YPOQ]POHNUM As   [YLNK]
+&               Where [YPOQ]PRHFCY = SITE
+&                 and [YPOQ]ITMREF = ITEM
+&                 and [YPOQ]EXTRCPDAT >= FROM_DATE
+&                 and [YPOQ]POHTYP = 1
+&                 and [YPOQ]LINSTA <> 3
+&               Order By [YPOQ]EXTRCPDAT Asc
+
+  Endif
+
+  Case ACKNOWLEDGED_STATUS
+    When 0:
+      # do nothing
+    When 1:
+      Filter [YLNK] Where [YPOH]OCNDAT <> [00/00/0000]
+    When 2:
+      Filter [YLNK] Where [YPOQ]LINOCNDAT <> [00/00/0000]
+    When 3:
+      End RETURN_DATE
+  Endcase
+
+  Read [YLNK] First
+
+  If !fstat
+    RETURN_DATE = [YPOQ]EXTRCPDAT
+  Endif
+
+# return null date if no purchase order was found
+End RETURN_DATE
+
+##############################################################################################################
+# < WIST >
+#**
+#* Returns the date of the last upcoming receipt of an item from a purchase order, that is expected
+#* to be received on or before UNTIL_DATE. If UNTIL_DATE is null ([00/00/0000]), it is not taken
+#* into account, and all purchase orders are considered. Returns null if no purchase order was found.
+#*
+#* <pre></pre>
+#*
+#* The <b>ACKNOWLEDGED_STATUS</b> parameter defines which PO lines are considered. These are the possible values:
+#* <pre>
+#* 0 = No acknowledgment needed
+#* 1 = Header must have an acknowledgment date (OCNDAT)
+#* 2 = Line must have an acknowledgment date (LINOCNDAT)
+#* </pre>
+#*
+#* @param SITE The relevant site
+#* @param ITEM The relevant item
+#* @param FROM_DATE Date to find the last receipt preceding
+#* @param CONTRACT_ORDERS If contract orders should be considered: 0 = no, any other value = yes
+#* @param ACKNOWLEDGED_STATUS The acknowledgment level needed to consider a PO line
+#*
+#* @return A Date value, date of last receipt
+#*!
+Funprog GET_LAST_RECEIPT_DATE_BY_ITEM(SITE, ITEM, UNTIL_DATE, CONTRACT_ORDERS, ACKNOWLEDGED_STATUS)
+Value Char SITE
+Value Char ITEM
+Value Date UNTIL_DATE
+Value Integer CONTRACT_ORDERS
+Value Integer ACKNOWLEDGED_STATUS
+
+Local Date RETURN_DATE
+
+  UNTIL_DATE = func XSS_VARIABLES.IS_NULL(UNTIL_DATE, [31/12/9999])
+
+  Local File PORDER  [YPOH]
+  Local File PORDERQ [YPOQ]
+
+  If CONTRACT_ORDERS
+    # include contract orders
+    Link [YPOQ] With [YPOH]POH0 ~= [YPOQ]POHNUM As   [YLNK]
+&               Where [YPOQ]PRHFCY = SITE
+&                 and [YPOQ]ITMREF = ITEM
+&                 and [YPOQ]EXTRCPDAT <= UNTIL_DATE
+&                 and [YPOQ]LINSTA <> 3
+&               Order By [YPOQ]EXTRCPDAT Desc
+
+  Else
+    # exclude contract orders
+    Link [YPOQ] With [YPOH]POH0 ~= [YPOQ]POHNUM As   [YLNK]
+&               Where [YPOQ]PRHFCY = SITE
+&                 and [YPOQ]ITMREF = ITEM
+&                 and [YPOQ]EXTRCPDAT <= UNTIL_DATE
+&                 and [YPOQ]POHTYP = 1
+&                 and [YPOQ]LINSTA <> 3
+&               Order By [YPOQ]EXTRCPDAT Desc
+
+  Endif
+
+  Case ACKNOWLEDGED_STATUS
+    When 0:
+      # do nothing
+    When 1:
+      Filter [YLNK] Where [YPOH]OCNDAT <> [00/00/0000]
+    When 2:
+      Filter [YLNK] Where [YPOQ]LINOCNDAT <> [00/00/0000]
+    When 3:
+      End RETURN_DATE
+  Endcase
+
+  Read [YLNK] First
+
+  If !fstat
+    RETURN_DATE = [YPOQ]EXTRCPDAT
+  Endif
+
+# return null date if no purchase order was found
+End RETURN_DATE
+
+##############################################################################################################
+# < WIST >
+#**
+#* Sets the expected receipt date on all lines of a purchase order to the specified date. This function does
+#* trigger any database transactions, only the field values of the mask are set.
+#*
+#* @param RCPT_DATE The new receipt date
+#*
+#*!
+Subprog SET_RCPT_DATE_LINES(RCPT_DATE)
+Value Date RCPT_DATE
+
+  Local Integer USER_INPUT
+  Local Char QTEXT(250)
+  Local Char DTEXT(250)
+
+  Case [V]GLANGUE
+    When "SWE"
+      QTEXT = "Vill du uppdatera inleveransdatum på alla rader?"
+      DTEXT = "Rader uppdaterade, tryck 'spara' för att verifiera"
+    When Default
+      QTEXT = "Update receipt date on all order lines?"
+      DTEXT = "Rows updated, press 'save' to verify"
+  Endcase
+
+  Qstbox QTEXT Using USER_INPUT
+  If USER_INPUT <> 1 : End : Endif
+
+  For I=0 To NBLIG-1
+    [M:POH2]EXTRCPDAT(I)=RCPT_DATE
+    [M:POH2]UPDFLG(I)=1
+  Next
+
+  Affzo [M:POH2]EXTRCPDAT
+  Infbox DTEXT
+
+End
+
+
+
+
+
+
+
+#######
+
+**********
+7,"TRT","XSS_PORDER",""
+2,"TRT","XSS_SORDER",""
+#<AdxTL>@(#)0.0.0.0 $Revision$
+# ================================================================================================ #
+#
+#   AKTIEBOLAGET SYSTEMSTÖD SVERIGE
+#
+#     Wilmer Jensen Sternehäll
+#     wilmer.sternehall@systemstod.se
+#
+#   ---
+#     Name:
+#       XSS_SORDER
+#     Description:
+#       A Systemstöd function library script containing custom Sage X3 functions developed
+#       in a general, comprehensive manner meant to fit any Sage X3 installation.
+#
+#       The functions in this file are related to SALES ORDER MANAGEMENT.
+#
+#
+#
+#   Copyright @ 2018 - 2020, Aktiebolaget Systemstöd Sverige
+#
+#
+# ================================================================================================ #
+
+##############################################################################################################
+# < WIST >
+#**
+#* Returns the last (highest) expected delivery date found on the lines of an order.
+#*
+#* @param ORDER_NUM Order number
+#*
+#* @return The last delivery date
+#*!
+Funprog GET_LAST_DELIVERY_DATE_ON_ORDER(ORDER_NUM)
+Value Char ORDER_NUM
+
+  Local File SORDERQ  [YSOQ]
+  Filter [YSOQ] Where [YSOQ]SOHNUM = ORDER_NUM
+
+  Local Date MAX_DATE
+
+  For [YSOQ]
+    MAX_DATE = max(MAX_DATE, [YSOQ]EXTDLVDAT)
+  Next
+
+End MAX_DATE
+
+##############################################################################################################
+# < WIST >
+#**
+#* Returns the first (lowest) expected delivery date found on the lines of an order.
+#*
+#* @param ORDER_NUM Order number
+#*
+#* @return The last delivery date
+#*!
+Funprog GET_FIRST_DELIVERY_DATE_ON_ORDER(ORDER_NUM)
+Value Char ORDER_NUM
+
+  Local File SORDERQ  [YSOQ]
+  Filter [YSOQ] Where [YSOQ]SOHNUM = ORDER_NUM
+
+  Local Date MIN_DATE
+
+  For [YSOQ]
+    MIN_DATE = func XSS_VARIABLES.IS_NULL(min(MIN_DATE, [YSOQ]EXTDLVDAT), [YSOQ]EXTDLVDAT)
+  Next
+
+End MIN_DATE
+
+##############################################################################################################
+# < WIST >
+#**
+#* Populates an array with the order numbers of all open sales orders with one or more lines
+#* concerning a specific item.
+#*
+#* @param ORDERS Array to populate
+#* @param ITEM Item to search for
+#*
+#*!
+Subprog GET_OPEN_SORDERS_BY_ITEM(ORDERS, ITEM)
+Variable Char ORDERS
+Value Char ITEM
+
+  Local File SORDERQ [YSOQ]
+  Filter [YSOQ] Where [YSOQ]SOQSTA < 3 and [YSOQ]ITMREF = ITEM
+
+  While rowcount([YSOQ]) > 0
+
+    Read [YSOQ] First
+    ORDERS(maxtab(ORDERS)+1) = [YSOQ]SOHNUM
+
+    Filter [YSOQ] Where [YSOQ]SOQSTA < 3 and [YSOQ]ITMREF = ITEM and !find([YSOQ]SOHNUM, ORDERS)
+
+  Wend
+
+End
+
+
+
+
+
+
+
+
+
+
+
+# DEBUG MESSAGES IN FUNCTION BELOW
+
+###############################################################################################################
+## < WIST >
+##**
+##* Gets the first date an order line can be delivered, by returning the first date that the expected stock
+##* quantity can satisfy this order line.
+##* <pre></pre>
+##*
+##* This functions takes into account lines with the same requested delivery date from all orders,
+##* and prioritizes the ones with a <b>lower order number</b>.
+##* <pre></pre>
+##*
+##* @param ORDER_NUM Order number
+##* @param LINE Order line
+##* @param SEQUENCE Order line sequence
+##*
+##* @return The first expected delivery date
+##*!
+#Funprog GET_ORDER_LINE_DELIVERABLE_DATE(ORDER_NUM, LINE, SEQUENCE)
+#Value Char ORDER_NUM
+#Value Integer LINE
+#Value Integer SEQUENCE
+#
+#  If clalev([YSOQ])=0 : Local File SORDERQ [YSOQ] : Endif
+#
+#  Read [YSOQ]SOQ0 = ORDER_NUM ; LINE ; SEQUENCE
+#
+#  Local Date CUSTOMER_REQUEST_DATE    # customers requested date OR today, whichever is largest
+#  Local Date LEADTIME_LIMIT           # lead time limit
+#  Local Date DELIVERY_DATE            # the final delivery date
+#  Local Date CHECK_DATE               # variable to check whether dates are OK to deliver on
+#  Local Date EARLIEST_DATE_TO_CHECK   # don't check earlier than this date. (first incoming purchase order)
+#
+#  LEADTIME_LIMIT          = func XSS_STOCK.GET_THEORETICAL_LEADTIME_LIMIT([YSOQ]STOFCY, [YSOQ]ITMREF)
+#  DELIVERY_DATE           = LEADTIME_LIMIT  # start here, then check if we can deliver earlier
+#  CHECK_DATE              = LEADTIME_LIMIT  # lead time date won't actually be checked, CHECK_DATE is reassigned before first check
+#  EARLIEST_DATE_TO_CHECK  = date$
+#
+#  Repeat
+#
+#    CHECK_DATE = max(EARLIEST_DATE_TO_CHECK, func XSS_PORDER.GET_LAST_RECEIPT_DATE_BY_ITEM([YSOQ]STOFCY, [YSOQ]ITMREF, CHECK_DATE - 1))
+#
+##    If [V]GUSER = "ADMIN"
+##    Infbox "CHECKING IF ORDER: " + ORDER_NUM + ", LINE: " + num$(LINE),
+##&          "CAN BE DELIVERED AT: " + num$(CHECK_DATE)
+##    Endif
+#
+#    If (func IS_ORDER_LINE_DELIVERABLE_AT_DATE(ORDER_NUM, LINE, SEQUENCE, CHECK_DATE))
+#      DELIVERY_DATE = CHECK_DATE
+##      If [V]GUSER = "ADMIN"
+##        Infbox "CHECKING IF ORDER: " + ORDER_NUM + ", LINE: " + num$(LINE),
+##&              "CAN BE DELIVERED AT: " + num$(CHECK_DATE),
+##&              "",
+##&              "Delivery date OK"
+##      Endif
+#    Else
+##      If [V]GUSER = "ADMIN"
+##        Infbox "CHECKING IF ORDER: " + ORDER_NUM + ", LINE: " + num$(LINE),
+##&              "CAN BE DELIVERED AT: " + num$(CHECK_DATE),
+##&              "",
+##&              "Delivery date NOT OK"
+##      Endif
+#      Break
+#    Endif
+#
+#  Until CHECK_DATE = EARLIEST_DATE_TO_CHECK
+#
+##  If [V]GUSER = "ADMIN"
+##  Infbox "ORDER: " + ORDER_NUM + ", LINE: " + num$(LINE),
+##&        "Delivery date: " + num$(DELIVERY_DATE)
+##  Endif
+#
+#End DELIVERY_DATE
+
+**********
+7,"TRT","XSS_SORDER",""
+2,"TRT","XSS_STOCK",""
+#<AdxTL>@(#)0.0.0.0 $Revision$
+# ================================================================================================ #
+#
+#   AKTIEBOLAGET SYSTEMSTÖD SVERIGE
+#
+#     Wilmer Jensen Sternehäll
+#     wilmer.sternehall@systemstod.se
+#
+#   ---
+#     Name:
+#       XSS_STOCK
+#     Description:
+#       A Systemstöd function library script containing custom Sage X3 functions developed
+#       in a general, comprehensive manner meant to fit any Sage X3 installation.
+#
+#       The functions in this file are related to STOCK MANAGEMENT.
+#
+#
+#
+#   Copyright @ 2018 - 2020, Aktiebolaget Systemstöd Sverige
+#
+#
+# ================================================================================================ #
+
+##############################################################################################################
+# < WIST >
+#**
+#* Checks if an item is in stock.
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to look for.
+#*
+#* @return An integer value
+#* <pre>
+#* 1 = item is in stock
+#* 0 = item is not in stock
+#* </pre>
+#*!
+Funprog IS_ITEM_IN_STOCK(SITE, ITEM)
+Value Char SITE
+Value Char ITEM
+
+  Local File STOCK [YSTO]
+  Filter [YSTO] Where STOFCY = SITE and ITMREF = ITEM
+
+  If rowcount([YSTO]) > 0
+    End 1
+  Endif
+
+End 0
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the lead time limit of an item. The lead time limit is the date that an item first can be
+#* receieved, if ordered today.
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to return the lead time limit of
+#*
+#* @return A Date value, the date an item can be received
+#*
+#*!
+Funprog GET_LEADTIME_LIMIT(SITE, ITEM)
+Value Char SITE
+Value Char ITEM
+
+  Local File ITMFACILIT [YITF]
+  Read [YITF]ITF0 = ITEM ; SITE
+
+  LEADTIME = date$ + [YITF]OFS
+
+End LEADTIME
+
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the theoretical lead time limit of an item. The theoretical lead time limit is whatever
+#* date is <b>further</b> in time, of:
+#*
+#* <pre>
+#* - Today + reorder lead time from product-site
+#* - The furthest in time expected receipt date of any acknowledged purchase order
+#* </pre>
+#*
+#* This means that the normal lead time date (from today) is returned, unless there is a purchase order with an
+#* acknowledged date subsequent to this. In that case, that acknowledged date is returned.
+#* <pre></pre>
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to return the theoretical lead time limit of
+#*
+#* @return A Date value, the date an item can be received
+#*
+#*!
+Funprog GET_THEORETICAL_LEADTIME_LIMIT(SITE, ITEM)
+Value Char SITE
+Value Char ITEM
+
+Local Date LEADTIME
+Local Date NULLDATE
+
+  Local File ITMFACILIT [YITF]
+  Local File PORDER  [YPOH]
+  Local File PORDERQ [YPOQ]
+
+  Read [YITF]ITF0 = ITEM ; SITE
+
+  Link [YPOQ] With [YPOH]POH0 ~= [YPOQ]POHNUM As   [YLNK]
+&             Where [YPOQ]ITMREF = ITEM
+&               and [YPOQ]PRHFCY = SITE
+&               and [YPOH]OCNDAT <> NULLDATE
+&               and [YPOQ]LINCLEFLG = 1
+&             Order By [YPOQ]EXTRCPDAT Desc
+
+  Read [YLNK] First
+
+  LEADTIME = max(date$ + [YITF]OFS, [YPOQ]EXTRCPDAT)
+
+End LEADTIME
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the current total quantity in stock of an item, of a certain status.
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to get the quantity of
+#* @param ITEM_STATUS The status to return the items stock quantity of
+#*
+#* @return An integer value, the stock quantity of the item
+#*!
+Funprog GET_ITEM_STOCK_QTY(SITE, ITEM, ITEM_STATUS)
+Value Char SITE
+Value Char ITEM
+Value Char ITEM_STATUS
+
+Local Decimal QTY
+
+  Local File ITMMVT [YITV]
+  Read [YITV]ITV0 = ITEM ; SITE
+
+  Case ITEM_STATUS
+    When "A", "A1"
+      QTY = [YITV]PHYSTO + [YITV]PLFPHYSTO
+    When "R"
+      QTY = [YITV]REJSTO + [YITV]PLFREJSTO
+    When "Q"
+      QTY = [YITV]CTLSTO + [YITV]PLFCTLSTO
+  Endcase
+
+End [L]QTY
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the stock quantity of an item with the specified allocation type. Allocation types:
+#*
+#* <pre>
+#* 1 - Global
+#* 2 - Detailed
+#* 3 - Inbound transfer
+#* 4 - Shortages/Detailed
+#* 5 - Shortages/Global
+#* 6 - Outbound transfer
+#* </pre>
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to get the quantity of
+#* @param ALLOCATION_TYPE The allocation type of which to return items with. See all possible types in the
+#*                        function description above
+#*
+#* @return An integer value, the item quantity with the specified allocation type
+#*!
+
+
+Funprog GET_ITEM_STOCK_QTY_BY_ALLOC(SITE, ITEM, ALLOCATION_TYPE)
+Value Char SITE
+Value Char ITEM
+Value Integer ALLOCATION_TYPE
+
+  Local File STOCK  [YSTO]
+  Local File STOALL [YSTA]
+
+  Link [YSTA] With [YSTO]STO0 ~= [YSTA]STOFCY ; [YSTA]STOCOU
+&             As   [YLNK]
+&             Where [YSTA]STOFCY = SITE and [YSTA]ITMREF = ITEM and [YSTA]ALLTYP = ALLOCATION_TYPE
+
+  Local Decimal COUNT
+
+  For [YLNK]
+    COUNT += [YSTA]QTYSTU
+  Next
+
+End COUNT
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the expected stock quantity of an item at a certain date, <b>including</b> the addition and
+#* subtraction of the quantities of all purchase and sales order scheduled that day.
+#*
+#* It is calculated by the following formula:
+#* <pre></pre>
+#*
+#* <code>Stock Quantity - Outgoing Items (Until date) + Incoming Items (Until date)</code>
+#* <pre></pre>
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to deliver.
+#* @param XDATE The date the the item should be delivered on or before.
+#*
+#* @return An integer value, the available quantity
+#*!
+Funprog GET_ITEM_STOCK_QTY_AT_DATE(SITE, ITEM, XDATE)
+Value Char SITE
+Value Char ITEM
+Value Date XDATE
+#-
+Local Decimal STOCK_QTY
+
+  STOCK_QTY = func GET_ITEM_STOCK_QTY(ITEM, SITE, "A")
+&           - func GET_ITEM_OUT_QTY_UNTIL_DATE(SITE, ITEM, XDATE)
+&           + func GET_ITEM_IN_QTY_UNTIL_DATE(SITE, ITEM, XDATE)
+
+End STOCK_QTY
+
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the expected stock quantity of an item after all active receipts and sales orders have been
+#* received/delivered.
+#*
+#* It is calculated by the following formula:
+#* <pre></pre>
+#*
+#* <code>Stock Quantity - Outgoing Items + Incoming Items</code>
+#* <pre></pre>
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to deliver.
+#*
+#* @return An integer value, the expected quantity
+#*!
+Funprog GET_ITEM_STOCK_QTY_EXPECTED(SITE, ITEM)
+Value Char SITE
+Value Char ITEM
+#-
+Local Decimal STOCK_QTY
+
+  STOCK_QTY = func GET_ITEM_STOCK_QTY(SITE, ITEM, "A")
+&           - func GET_ITEM_OUT_QTY(SITE, ITEM)
+&           + func GET_ITEM_IN_QTY(SITE, ITEM)
+
+End STOCK_QTY
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the available stock quantity of an item, subtracting the quantities on all open sales orders from
+#* the current stock quantity.
+#*
+#* It is calculated by the following formula:
+#* <pre></pre>
+#*
+#* <code>Stock Quantity - Outgoing Items</code>
+#* <pre></pre>
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to deliver
+#*
+#* @return An integer value, the available quantity
+#*!
+Funprog GET_ITEM_STOCK_QTY_AVAILABLE(SITE, ITEM)
+Value Char SITE
+Value Char ITEM
+#-
+Local Decimal STOCK_QTY
+
+  STOCK_QTY = func GET_ITEM_STOCK_QTY(SITE, ITEM, "A")
+&           - func GET_ITEM_OUT_QTY(SITE, ITEM)
+
+End STOCK_QTY
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the total quantity of an item on sales orders with a delivery date prior to or
+#* on a date, and that isn't assigned to a pick ticket or delivery.
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to deliver.
+#* @param DAT The date the the item should be delivered on or before.
+#*
+#* @return An integer value, the quantity to be delivered.
+#*!
+Funprog GET_QTY_TO_DELIVER_BEFORE_AT_DATE(SITE, ITEM, DAT)
+Value Char SITE
+Value Char ITEM
+Value Date DAT
+
+  Local File SORDERQ [F:YSOQ]
+  Filter [F:YSOQ] Where STOFCY = SITE and ITMREF = ITEM and SHIDAT <= DAT and SOQSTA < 3  # SOQSTA = 3 avslutad rad
+
+  Local Decimal QTY
+
+  For [F:YSOQ]
+
+    [L]QTY += ([F:YSOQ]QTYSTU - [F:YSOQ]PREQTYSTU - [F:YSOQ]ODLQTYSTU - [F:YSOQ]DLVQTYSTU)
+
+  Next
+
+End [L]QTY
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the first empty location of the specified location type, in alphanumeric
+#* order.
+#*
+#* @param SITE The relevant site
+#* @param LOC_TYPE The location type of which to search for a location
+#* @param MIN_LOC If this value is not null, the function returns the first empty location alphanumerically following this one
+#*
+#* @return A string value, the first empty location
+#*!
+Funprog GET_EMPTY_LOC_FROM_TYPE(SITE, LOC_TYPE, MIN_LOC)
+Value Char SITE
+Value Char LOC_TYPE
+Value Char MIN_LOC
+
+  Local File STOLOC [YSL]
+  Filter [YSL] Where STOFCY = SITE and LOCTYP = LOC_TYPE and OCPCOD = 1
+&              Order By LOC Asc
+
+  Read [YSL] First
+
+End [YSL]LOC
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the first location (empty or not) of the specified location type, in alphanumeric
+#* order.
+#*
+#* @param SITE The relevant site
+#* @param LOC_TYPE The location type of which to search for a location
+#*
+#* @return A string value, the first location
+#*!
+Funprog GET_LOC_FROM_TYPE(SITE, LOC_TYPE)
+Value Char SITE
+Value Char LOC_TYPE
+
+  Local File STOLOC [YSL]
+  Filter [YSL] Where STOFCY = SITE and LOCTYP = LOC_TYPE
+&              Order By LOC Asc
+
+  Read [YSL] First
+
+End [YSL]LOC
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the quantity of an item on a location.
+#*
+#* @param SITE The relevant site
+#* @param LOCATION The location on which to count the item
+#* @param ITEM The item to get the quantity of
+#*
+#* @return An integer value, the item quantity
+#*!
+Funprog GET_LOC_ITEM_QTY(SITE, LOCATION, ITEM)
+Value Char SITE
+Value Char LOCATION
+Value Char ITEM
+
+  Local File STOCK [YSTO]
+  Filter [YSTO] Where STOFCY = SITE and LOC = LOCATION and ITMREF = ITEM
+
+  Local Decimal COUNT
+
+  For [YSTO]
+    COUNT += [YSTO]QTYSTU
+  Next
+
+End COUNT
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the quantity of an item on a location with the specified allocation type. Allocation types:
+#*
+#* <pre>
+#* 1 - Global
+#* 2 - Detailed
+#* 3 - Inbound transfer
+#* 4 - Shortages/Detailed
+#* 5 - Shortages/Global
+#* 6 - Outbound transfer
+#* </pre>
+#*
+#* @param SITE The relevant site
+#* @param LOCATION The location on which to count the item
+#* @param ITEM The item to get the quantity of
+#* @param ALLOCATION_TYPE The allocation type of which to return items with. See all possible types in the
+#*                        function description above
+#*
+#* @return An integer value, the item quantity with the specified allocation type
+#*!
+Funprog GET_LOC_ITEM_QTY_BY_ALLOC(SITE, LOCATION, ITEM, ALLOCATION_TYPE)
+Value Char SITE
+Value Char LOCATION
+Value Char ITEM
+Value Integer ALLOCATION_TYPE
+
+  Local File STOCK  [YSTO]
+  Local File STOALL [YSTA]
+
+  Link [YSTA] With [YSTO]STO0 ~= [YSTA]STOFCY ; [YSTA]STOCOU
+&             As   [YLNK]
+&             Where [YSTA]STOFCY = SITE and [YSTO]LOC = LOCATION and [YSTA]ITMREF = ITEM and [YSTA]ALLTYP = ALLOCATION_TYPE
+
+  Local Decimal COUNT
+
+  For [YLNK]
+    COUNT += [YSTA]QTYSTU
+  Next
+
+End COUNT
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the total outgoing quantity of an item, by summarizing the quantities
+#* of the item on all active sales orders (labeled with status 'Firm' or 'Planned').
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to get the quantity of
+#*
+#* @return An integer value, the total outgoing quantity of the item
+#*!
+Funprog GET_ITEM_OUT_QTY(SITE, ITEM)
+Value Char SITE
+Value Char ITEM
+#-
+Local Decimal QTY
+
+  Local File ITMMVT [YITV]
+  Read [YITV]ITV0 = ITEM ; SITE
+
+  QTY = [YITV]SALSTO
+
+#  If clalev([ZSOQ])=0 : Local File SORDERQ [ZSOQ] : Endif
+#
+#  Filter [ZSOQ] Where [ZSOQ]SOQSTA < 3
+#&                 and [ZSOQ]ITMREF = ITEM
+#
+#  For [ZSOQ]
+#    QTY += ([ZSOQ]QTYSTU - [ZSOQ]ODLQTYSTU - [ZSOQ]DLVQTYSTU)
+#  Next
+
+End [L]QTY
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the active outgoing quantity of an item until a date, by summarizing
+#* the quantities of the item on all active sales orders (labeled with status
+#* 'Firm' or 'Planned') with an end date prior or equal to the specified date.
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to get the quantity of
+#* @param DAT The date up until which the outgoing quantity should be calculated
+#*
+#* @return An integer value, the outgoing quantity of the item
+#*!
+Funprog GET_ITEM_OUT_QTY_UNTIL_DATE(SITE, ITEM, DAT)
+Value Char SITE
+Value Char ITEM
+Value Date DAT
+#-
+Local Decimal QTY
+
+  Local File SORDERQ [ZSOQ]
+
+  Filter [ZSOQ] Where [ZSOQ]SOQSTA < 3
+&                 and [ZSOQ]ITMREF = ITEM
+&                 and [ZSOQ]EXTDLVDAT <= DAT
+
+  For [ZSOQ]
+    QTY += ([ZSOQ]QTYSTU - [ZSOQ]ODLQTYSTU - [ZSOQ]DLVQTYSTU)
+  Next
+
+End QTY
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the total incoming quantity of an item, by summarizing the quantities
+#* of the item on all active purchase order lines (labeled with LINCLEFLG = 1).
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to get the quantity of
+#*
+#* @return An integer value, the total incoming quantity of the item
+#*!
+Funprog GET_ITEM_IN_QTY(SITE, ITEM)
+Value Char SITE
+Value Char ITEM
+
+Local Decimal QTY
+
+  Local File PORDERQ [YPOQ]
+
+  Filter [YPOQ] Where [YPOQ]PRHFCY = SITE
+&                 and [YPOQ]ITMREF = ITEM
+&                 and [YPOQ]LINCLEFLG = 1
+&             Order By [YPOQ]EXTRCPDAT Desc
+
+  For [YPOQ]
+    QTY += ([YPOQ]QTYSTU - [YPOQ]RCPQTYSTU)
+  Next
+
+End QTY
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the total contracted incoming quantity of an item, by summarizing the quantities
+#* of the item on all active contract PO lines.
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to get the quantity of
+#*
+#* @return An integer value, the total incoming quantity of the item
+#*!
+Funprog GET_ITEM_IN_QTY_CONTRACTED(SITE, ITEM)
+Value Char SITE
+Value Char ITEM
+
+Local Decimal QTY
+
+  Local File PORDERQ [YPOQ]
+
+  Filter [YPOQ] Where [YPOQ]PRHFCY = SITE
+&                 and [YPOQ]ITMREF = ITEM
+&                 and [YPOQ]POHTYP = 2
+&                 and [YPOQ]LINCLEFLG = 1
+&             Order By [YPOQ]EXTRCPDAT Desc
+
+  For [YPOQ]
+    QTY += ([YPOQ]QTYSTU - [YPOQ]RCPQTYSTU)
+  Next
+
+End QTY
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the total incoming quantity of an item, by summarizing the quantities
+#* of the item on all active purchase order lines (labeled with LINCLEFLG = 1).
+#*
+#* Only counts the quantity of all purchase orders with an acknowledgment date (OCNDAT).
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to get the quantity of
+#*
+#* @return An integer value, the total incoming quantity of the item
+#*!
+Funprog GET_ITEM_IN_QTY_ACKNOWLEDGED(SITE, ITEM)
+Value Char SITE
+Value Char ITEM
+
+Local Decimal QTY
+
+  Local File PORDER  [YPOH]
+  Local File PORDERQ [YPOQ]
+
+  Link [YPOQ] With  [YPOH]POH0 ~= [YPOQ]POHNUM As [YLNK]
+&             Where [YPOQ]PRHFCY = SITE
+&               and [YPOQ]ITMREF = ITEM
+&               and [YPOH]OCNDAT <> [00/00/0000]
+&               and [YPOQ]LINCLEFLG = 1
+&             Order By [YPOQ]EXTRCPDAT Desc
+
+  For [YLNK]
+    QTY += ([YPOQ]QTYSTU - [YPOQ]RCPQTYSTU)
+  Next
+
+End QTY
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the total incoming quantity of an item, by summarizing the quantities
+#* of the item on all active purchase order lines (labeled with LINCLEFLG = 1).
+#*
+#* Only counts the quantity of purchase order lines with an acknowledgment date (LINOCNDAT).
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to get the quantity of
+#*
+#* @return An integer value, the total incoming quantity of the item
+#*!
+Funprog GET_ITEM_IN_QTY_ACKNOWLEDGED_LINES(SITE, ITEM)
+Value Char SITE
+Value Char ITEM
+
+Local Decimal QTY
+
+  Local File PORDERQ [YPOQ]
+
+  Filter [YPOQ] Where [YPOQ]PRHFCY = SITE
+&                 and [YPOQ]ITMREF = ITEM
+&                 and [YPOQ]LINOCNDAT <> [00/00/0000]
+&                 and [YPOQ]LINCLEFLG = 1
+&               Order By [YPOQ]EXTRCPDAT Desc
+
+  For [YPOQ]
+    QTY += ([YPOQ]QTYSTU - [YPOQ]RCPQTYSTU)
+  Next
+
+End QTY
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the active incoming quantity of an item until a date, by summarizing
+#* the quantities of the item on all active purchase order lines (labeled with LINCLEFLG = 1)
+#* with an end date prior or equal to the specified date.
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to get the quantity of
+#* @param DAT The date up until which the incoming quantity should be calculated
+#*
+#* @return An integer value, the incoming quantity of the item
+#*!
+Funprog GET_ITEM_IN_QTY_UNTIL_DATE(SITE, ITEM, UNTIL_DATE)
+Value Char SITE
+Value Char ITEM
+Value Date UNTIL_DATE
+
+Local Decimal QTY
+
+  Local File PORDERQ [YPOQ]
+
+  Filter [YPOQ] Where [YPOQ]PRHFCY = SITE
+&                 and [YPOQ]ITMREF = ITEM
+&                 and [YPOQ]EXTRCPDAT <= UNTIL_DATE
+&                 and [YPOQ]LINCLEFLG = 1
+&             Order By [YPOQ]EXTRCPDAT Desc
+
+  For [YPOQ]
+    QTY += ([YPOQ]QTYSTU - [YPOQ]RCPQTYSTU)
+  Next
+
+End QTY
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the total contracted incoming quantity of an item, by summarizing the quantities
+#* of the item on all active contract PO lines.
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to get the quantity of
+#*
+#* @return An integer value, the total incoming quantity of the item
+#*!
+Funprog GET_ITEM_IN_QTY_CONTRACTED_UNTIL_DATE(SITE, ITEM, UNTIL_DATE)
+Value Char SITE
+Value Char ITEM
+Value Date UNTIL_DATE
+
+Local Decimal QTY
+
+  Local File PORDERQ [YPOQ]
+
+  Filter [YPOQ] Where [YPOQ]PRHFCY = SITE
+&                 and [YPOQ]ITMREF = ITEM
+&                 and [YPOQ]EXTRCPDAT <= UNTIL_DATE
+&                 and [YPOQ]POHTYP = 2
+&                 and [YPOQ]LINCLEFLG = 1
+&             Order By [YPOQ]EXTRCPDAT Desc
+
+  For [YPOQ]
+    QTY += ([YPOQ]QTYSTU - [YPOQ]RCPQTYSTU)
+  Next
+
+End QTY
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the active incoming quantity of an item until a date, by summarizing
+#* the quantities of the item on all active purchase order lines (labeled with LINCLEFLG = 1)
+#* with an end date prior or equal to the specified date.
+#*
+#* Only counts the quantity of all purchase orders with an acknowledgment date (OCNDAT).
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to get the quantity of
+#* @param UNTIL_DATE The date up until which the incoming quantity should be calculated
+#*
+#* @return An integer value, the incoming quantity of the item
+#*!
+Funprog GET_ITEM_IN_QTY_UNTIL_DATE_ACKNOWLEDGED(SITE, ITEM, UNTIL_DATE)
+Value Char SITE
+Value Char ITEM
+Value Date UNTIL_DATE
+
+Local Decimal QTY
+
+  Local File PORDER  [YPOH]
+  Local File PORDERQ [YPOQ]
+
+  Link [YPOQ] With  [YPOH]POH0 ~= [YPOQ]POHNUM As [YLNK]
+&             Where [YPOQ]PRHFCY = SITE
+&               and [YPOQ]ITMREF = ITEM
+&               and [YPOH]OCNDAT <> [00/00/0000]
+&               and [YPOQ]EXTRCPDAT <= UNTIL_DATE
+&               and [YPOQ]LINCLEFLG = 1
+&             Order By [YPOQ]EXTRCPDAT Desc
+
+  For [YLNK]
+    QTY += ([YPOQ]QTYSTU - [YPOQ]RCPQTYSTU)
+  Next
+
+End QTY
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the active incoming quantity of an item until a date, by summarizing
+#* the quantities of the item on all active purchase order lines (labeled with LINCLEFLG = 1)
+#* with an end date prior or equal to the specified date.
+#*
+#* Only counts the quantity of purchase order lines with an acknowledgment date (LINOCNDAT).
+#*
+#* @param SITE The relevant site
+#* @param ITEM The item to get the quantity of
+#* @param UNTIL_DATE The date up until which the incoming quantity should be calculated
+#*
+#* @return An integer value, the incoming quantity of the item
+#*!
+Funprog GET_ITEM_IN_QTY_UNTIL_DATE_ACKNOWLEDGED_LINES(SITE, ITEM, UNTIL_DATE)
+Value Char SITE
+Value Char ITEM
+Value Date UNTIL_DATE
+
+Local Decimal QTY
+
+  Local File PORDERQ [YPOQ]
+
+  Filter [YPOQ] Where [YPOQ]PRHFCY = SITE
+&                 and [YPOQ]ITMREF = ITEM
+&                 and [YPOQ]LINOCNDAT <> [00/00/0000]
+&                 and [YPOQ]EXTRCPDAT <= UNTIL_DATE
+&                 and [YPOQ]LINCLEFLG = 1
+&               Order By [YPOQ]EXTRCPDAT Desc
+
+  For [YPOQ]
+    QTY += ([YPOQ]QTYSTU - [YPOQ]RCPQTYSTU)
+  Next
+
+End QTY
+
+**********
+7,"TRT","XSS_STOCK",""
+2,"TRT","XSS_VARIABLES",""
+#<AdxTL>@(#)0.0.0.0 $Revision$
+# ================================================================================================ #
+#
+#   AKTIEBOLAGET SYSTEMSTÖD SVERIGE
+#
+#     Wilmer Jensen Sternehäll
+#     wilmer.sternehall@systemstod.se
+#
+#   ---
+#     Name:
+#       XSS_VARIABLES
+#     Description:
+#       A Systemstöd function library script containing custom Sage X3 functions developed
+#       in a general, comprehensive manner meant to fit any Sage X3 installation.
+#
+#       The functions in this file are related to VARIABLE MANAGEMENT.
+#
+#
+#
+#   Copyright @ 2018 - 2020, Aktiebolaget Systemstöd Sverige
+#
+#
+# ================================================================================================ #
+
+##############################################################################################################
+# < WIST >
+#**
+#* Replaces a substring of a string, with another string value.
+#*
+#* @param STRING The string in which to replace a substring
+#* @param TO_REPLACE The substring to replace
+#* @param REPLACE_BY The string value to replace the substring with
+#*
+#* @return A string value, the new modified string
+#*!
+Funprog REPLACE(STRING, TO_REPLACE, REPLACE_BY)
+Value Char STRING
+Value Char TO_REPLACE
+Value Char REPLACE_BY
+
+Local Integer POS
+
+  While instr(POS+1, STRING, TO_REPLACE) > 0
+    POS = instr(POS+1, STRING, TO_REPLACE)
+    STRING = left$(STRING, POS-1) + REPLACE_BY + right$(STRING, POS+len(TO_REPLACE))
+
+    POS += len(TO_REPLACE)
+  Wend
+
+End STRING
+
+
+##############################################################################################################
+# < WIST >
+#**
+#* Returns VALUE_TO_CHECK if it is not null, otherwise returns FALLBACK_VALUE. Supports variables of type
+#* string, date, and any numerical data type.
+#* <pre></pre>
+#* For numerical data types (int, short, float etc.) FALLBACK_VALUE is returned if VALUE_TO_CHECK is
+#* zero (0.0).
+#* <pre></pre>
+#*
+#* @param VALUE_TO_CHECK The value to check if it is null
+#* @param FALLBACK_VALUE The value to return if the checked value is null
+#*
+#* @return A value of the same type as VALUE_TO_CHECK
+#*!
+Funprog IS_NULL(VALUE_TO_CHECK, FALLBACK_VALUE)
+
+  If find(type(VALUE_TO_CHECK), -1, 524, 525, 526)
+    End
+  Endif
+
+  Case type(VALUE_TO_CHECK)
+    When 3
+
+      If VALUE_TO_CHECK <> [00/00/0000]
+        End VALUE_TO_CHECK
+      Endif
+
+    When 1 or 2 or 4 or 5 or 6 or 7
+
+      If VALUE_TO_CHECK <> 0
+        End VALUE_TO_CHECK
+      Endif
+
+    When Default
+
+      If VALUE_TO_CHECK <> ""
+        End VALUE_TO_CHECK
+      Endif
+
+  Endcase
+
+# if compiler reaches this statement, then the value was null
+End FALLBACK_VALUE
+
+##############################################################################################################
+# < WIST >
+#**
+#* Checks if a date is on a weekend (saturday or sunday). Returns 1 if day is on weekend, otherwise
+#* returns 0.
+#*
+#* @param XDATE The date to check
+#*
+#* @return A tinyint value, 1 if true and 0 if false
+#*!
+Funprog DATE_IS_WEEKEND(XDATE)
+Value Date XDATE
+
+  Local Tinyint IS_WEEKEND
+  IS_WEEKEND = 0
+
+  If find(dayn(XDATE, 6, 7))
+    IS_WEEKEND = 1
+  Endif
+
+End IS_WEEKEND
+
+##############################################################################################################
+# < WIST >
+#**
+#* Returns the first week day (monday - friday) that occurs on or after XDATE.
+#*
+#* @param XDATE The date to search from
+#*
+#* @return A date value, the first weekday
+#*!
+Funprog GET_FIRST_WEEKDAY(XDATE)
+Value Date XDATE
+
+  Local Date FIRST_WEEKDAY
+  FIRST_WEEKDAY = XDATE
+
+  Case dayn(XDATE)
+    When 6
+      FIRST_WEEKDAY += 2
+    When 7
+      FIRST_WEEKDAY += 1
+  Endcase
+
+End FIRST_WEEKDAY
+
+
+##############################################################################################################
+# < WIST >
+#**
+#* Returns the position of a specified occurence of a substring in another string.
+#* Returns 0 if no occurence were found, or if the parameter OCCURENCE < 1
+#*
+#* @param SEARCHSTRING The string to be searched
+#* @param SEARCHVALUE The value to be searched for
+#* @param OCCURENCE The occurence of SEARCHVALUE to return the position of
+#*
+#* @return An integer value, representing the position of the given occurence of a string value, in another string
+#*!
+Funprog GET_SUBSTRING_POS(SEARCHSTRING, SEARCHVALUE, OCCURENCE)
+Const Char SEARCHVALUE
+Value Integer OCCURENCE
+
+Local Integer COUNT
+Local Integer POS
+
+  While COUNT < OCCURENCE
+
+    POS = instr(POS + 1, SEARCHSTRING, SEARCHVALUE)
+    COUNT += 1
+
+  Wend
+
+End POS
+
+##############################################################################################################
+# < WIST >
+#**
+#* Returns a specific segment of a string value, based on a delimiter indicator used to
+#* determine the end of each segment.
+#*
+#* GET_STRING_SEGMENT looks for the (1 * SEGMENTINDEX - 1) and (1 * SEGMENTINDEX) occurences of the DELIMITER character(s) in SEARCHSTRING,
+#* and returns all the characters in between them.
+#*
+#* @param SEARCHSTRING The string to be searched
+#* @param DELIMITER The start/end indicator of each segment
+#* @param SEGMENTINDEX The index of the segment to be returned
+#*
+#* @return A string value, the specified segment of the original string value
+#*!
+Funprog GET_STRING_SEGMENT(SEARCHSTRING, DELIMITER, SEGMENTINDEX)
+Value Char DELIMITER
+Value Integer SEGMENTINDEX
+
+Local Integer FIRSTCHARPOS
+Local Integer LASTCHARPOS
+
+  If SEGMENTINDEX = 0 : SEGMENTINDEX = 1 : Endif
+
+  FIRSTCHARPOS = func GET_SUBSTRING_POS(SEARCHSTRING, DELIMITER, SEGMENTINDEX - 1) + 1
+  LASTCHARPOS  = func GET_SUBSTRING_POS(SEARCHSTRING, DELIMITER, SEGMENTINDEX)     - 1
+
+  If LASTCHARPOS < 1
+    LASTCHARPOS = len(SEARCHSTRING) - 1
+  Endif
+
+  Local Char RESULT(250)
+
+  RESULT = seg$(SEARCHSTRING, FIRSTCHARPOS, LASTCHARPOS)
+
+End RESULT
+
+##############################################################################################################
+# < WIST >
+#**
+#* Sets the value of a string variable if it's empty, but does nothing if it already has a value.
+#* Useful when assigning a variable from a hierarchy of potentially empty values.
+#*
+#*
+#* @param XVAR The string variable to be checked and assigned
+#* @param XVAL The string value to assign the variable to
+#*
+#*!
+Subprog ASSIGN_IF_EMPTY(XVAR, XVAL)
+Variable Char XVAR
+Value Char XVAL
+
+  If len(XVAR) = 0
+    XVAR = XVAL
+  Endif
+
+End
+
+##############################################################################################################
+# < WIST >
+#**
+#* Adds a character to the left of a string, until the string reaches the desired length.
+#* E.g. STRING_FILL_LEFT("E345", 8, "0")
+#*
+#* returns "0000E345"
+#*
+#*
+#* @param STRING The string that is to be right-aligned
+#* @param LENGTH Desired length of result string
+#* @param FILL_CHAR The character to fill the string with
+#*
+#*!
+Funprog STRING_FILL_LEFT(STRING, LENGTH, FILL_CHAR)
+Value Char STRING
+Value Shortint LENGTH
+Value Char FILL_CHAR
+
+Local Char RESULT(30)
+
+  #STRING = vireblc(STRING, 4)
+
+  If len(STRING) < LENGTH
+    RESULT = string$(LENGTH - len(STRING), FILL_CHAR) + STRING
+  Endif
+
+End RESULT
+
+##############################################################################################################
+# < WIST >
+#**
+#* Increments the last occurring number part of a string by an integer amount.
+#*
+#* @param STRING The string to increment
+#* @param AMOUNT The amount to add
+#*
+#* @return A string value, the new incremented string
+#*
+#*!
+Funprog STRING_INCREMENT(STRING, AMOUNT)
+Value Char STRING
+Value Integer AMOUNT
+
+  Local Char RESULT(len(STRING))
+  Local Char NUMBER(len(STRING))
+  Local Char D(1)
+
+  Local Integer FO    # first digit offset (from back)
+  Local Integer LO    # last digit offset (from back)
+  Local Integer FP    # first position
+  Local Integer LP    # last position
+  Local Integer NL    # number length
+
+  For LO = 0 To len(STRING)
+    D = mid$(STRING, len(STRING) - LO, 1)
+    If val(D) <> 0 or D = "0"
+      Break
+    Endif
+  Next
+
+  For FO = LO + 1 To len(STRING)
+    D = mid$(STRING, len(STRING) - FO, 1)
+    If val(D) = 0 and D <> "0"
+      FO -= 1
+      Break
+    Endif
+  Next
+
+  FP = len(STRING) - (FO)
+  LP = len(STRING) - (LO)
+  NL = LP - FP + 1
+
+  NUMBER = mid$(STRING, FP, NL)
+  NUMBER = num$(val(NUMBER) + AMOUNT)
+
+  RESULT = left$(STRING, FP - 1)
+  RESULT += NUMBER
+  RESULT += right$(STRING, LP + 1)
+
+End RESULT
+
+##############################################################################################################
+# < WIST >
+#**
+#*
+#*
+#*
+#*!
+Funprog FORMAT_VALUE_BY_TYPE(VAR_TYPE, LM_NUMBER, VAR_LENGTH, INTERNAL_VALUE)
+Value Char VAR_TYPE
+Value Integer LM_NUMBER
+Value Integer VAR_LENGTH
+Value Char INTERNAL_VALUE
+
+  Case VAR_TYPE
+    When "A"
+      End INTERNAL_VALUE
+    When "DCB"
+      End INTERNAL_VALUE
+    When "D"
+      End INTERNAL_VALUE
+    When "M"
+      End func GET_LOCAL_MENU_TEXT(LM_NUMBER, val(INTERNAL_VALUE), [V]GLANGUE)
+  Endcase
+
+End
+
+##############################################################################################################
+# < WIST >
+#**
+#* Returns the text of a local menu index, translated to the specified language.
+#*
+#* @param MENU The local menu number
+#* @param INDEX The index in the local menu
+#* @param LANGUAGE The language to return the text in
+#*
+#* @return A string value, the local menu message
+#*
+#*!
+Funprog GET_LOCAL_MENU_TEXT(MENU, INDEX, LANGUAGE)
+Value Integer MENU
+Value Integer INDEX
+Value Char LANGUAGE
+
+Local Char TEXT(250)
+
+  If !clalev([F:XAPL]) : Local File APLSTD [F:XAPL] : Endif
+  Read [F:XAPL]CLE = MENU ; INDEX ; LANGUAGE
+  If fstat = 0 Then
+    TEXT = [F:XAPL]LANMES
+  Endif
+
+End TEXT
+
+**********
+7,"TRT","XSS_VARIABLES",""
+8,""
