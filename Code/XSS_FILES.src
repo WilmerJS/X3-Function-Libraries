@@ -162,7 +162,7 @@ Local Integer LASTBACKSLASH_POS : LASTBACKSLASH_POS = 0
   Wend
 
   # all characters behind the last slash, but remove the extension (including the dot)
-  FILNAME = seg$(FILEPATH, LASTBACKSLASH_POS + 1, len(FILEPATH) - (len(func GETFILEEXT(FILEPATH)) + 1))
+  FILNAME = seg$(FILEPATH, LASTBACKSLASH_POS + 1, len(FILEPATH) - (len(func GET_FILE_EXTENSION(FILEPATH)) + 1))
 
 End FILNAME
 
