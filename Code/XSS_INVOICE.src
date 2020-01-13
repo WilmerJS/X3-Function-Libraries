@@ -1,0 +1,58 @@
+# ================================================================================================ #
+#
+#   AKTIEBOLAGET SYSTEMSTÖD SVERIGE
+#
+#     Wilmer Jensen Sternehäll
+#     wilmer.sternehall@systemstod.se
+#
+#   ---
+#     Name:
+#       XSS_SINVOICE
+#     Description:
+#       A Systemstöd function library script containing custom Sage X3 functions developed
+#       in a general, comprehensive manner meant to fit any Sage X3 installation.
+#
+#       The functions in this file are related to SALES INVOICE MANAGEMENT.
+#
+#
+#
+#   Copyright @ 2018 - 2020, Aktiebolaget Systemstöd Sverige
+#
+#
+# ================================================================================================ #
+
+##############################################################################################################
+# < WIST >
+#**
+#* Calculates an OCR number for the given invoice number. The function uses the Luhn algorithm to calculate
+#* a check digit, and returns the invoice number with the check digit at the end.
+#*
+#* @param INVOICE_NUMBER Invoice number
+#*
+#* @return A string value, the OCR number
+#*!
+Funprog CALCULATE_OCR(INVOICE_NUMBER)
+Value Char INVOICE_NUMBER
+
+  Local Tinyint CTRL, LOOP_D, CHECK_D
+  Local Shortint I, TOTAL
+  CTRL = 2
+
+  For I = len(INVOICE_NUMBER) To 0 Step -1        # loop through invoice_number, starting from the back
+
+    LOOP_D = val(mid$(INVOICE_NUMBER, I, 1))      # get the digit at position I
+    LOOP_D *= CTRL                                # multiply by control value (shifts between 2 and 1)
+    If LOOP_D > 9 : LOOP_D -= 9 : Endif           # if result is > 9, set it to the sum of the two digits instead
+
+    TOTAL += LOOP_D                               # add to total
+    CTRL = 3 - CTRL                               # toggle CTRL between 1 and 2
+  Next
+
+  CHECK_D = 10 - mod(TOTAL, 10)                   # check digit = 10 minus the remainder of TOTAL divided by 10
+  If CHECK_D = 10 : CHECK_D = 0 : Endif           # 10 should be 0
+
+End INVOICE_NUMBER + num$(CHECK_D)
+
+
+#
+
