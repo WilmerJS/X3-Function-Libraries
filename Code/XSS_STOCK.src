@@ -517,6 +517,7 @@ Local Decimal QTY
 
   Filter [YPOQ] Where [YPOQ]PRHFCY = SITE
 &                 and [YPOQ]ITMREF = ITEM
+&                 and [YPOQ]POHTYP = 1
 &                 and [YPOQ]LINCLEFLG = 1
 &             Order By [YPOQ]EXTRCPDAT Desc
 
@@ -583,6 +584,7 @@ Local Decimal QTY
 &             Where [YPOQ]PRHFCY = SITE
 &               and [YPOQ]ITMREF = ITEM
 &               and [YPOH]OCNDAT <> [00/00/0000]
+&               and [YPOQ]POHTYP = 1
 &               and [YPOQ]LINCLEFLG = 1
 &             Order By [YPOQ]EXTRCPDAT Desc
 
@@ -616,6 +618,7 @@ Local Decimal QTY
   Filter [YPOQ] Where [YPOQ]PRHFCY = SITE
 &                 and [YPOQ]ITMREF = ITEM
 &                 and [YPOQ]LINOCNDAT <> [00/00/0000]
+&                 and [YPOQ]POHTYP = 1
 &                 and [YPOQ]LINCLEFLG = 1
 &               Order By [YPOQ]EXTRCPDAT Desc
 
@@ -650,6 +653,7 @@ Local Decimal QTY
   Filter [YPOQ] Where [YPOQ]PRHFCY = SITE
 &                 and [YPOQ]ITMREF = ITEM
 &                 and [YPOQ]EXTRCPDAT <= UNTIL_DATE
+&                 and [YPOQ]POHTYP = 1
 &                 and [YPOQ]LINCLEFLG = 1
 &             Order By [YPOQ]EXTRCPDAT Desc
 
@@ -722,6 +726,7 @@ Local Decimal QTY
 &               and [YPOQ]ITMREF = ITEM
 &               and [YPOH]OCNDAT <> [00/00/0000]
 &               and [YPOQ]EXTRCPDAT <= UNTIL_DATE
+&               and [YPOQ]POHTYP = 1
 &               and [YPOQ]LINCLEFLG = 1
 &             Order By [YPOQ]EXTRCPDAT Desc
 
@@ -759,6 +764,7 @@ Local Decimal QTY
 &                 and [YPOQ]ITMREF = ITEM
 &                 and [YPOQ]LINOCNDAT <> [00/00/0000]
 &                 and [YPOQ]EXTRCPDAT <= UNTIL_DATE
+&                 and [YPOQ]POHTYP = 1
 &                 and [YPOQ]LINCLEFLG = 1
 &               Order By [YPOQ]EXTRCPDAT Desc
 

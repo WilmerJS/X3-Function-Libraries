@@ -1,0 +1,487 @@
+# ================================================================================================ #
+#
+#   AKTIEBOLAGET SYSTEMSTÖD SVERIGE
+#
+#     Wilmer Jensen Sternehäll
+#     wilmer.sternehall@systemstod.se
+#
+#   ---
+#     Name:
+#       XSS_PRICE
+#     Description:
+#       A Systemstöd function library script containing custom Sage X3 functions developed
+#       in a general, comprehensive manner meant to fit any Sage X3 installation.
+#
+#       The functions in this file are related to PRICE MANAGEMENT.
+#
+#
+#
+#   Copyright @ 2018 - 2020, Aktiebolaget Systemstöd Sverige
+#
+#
+# ================================================================================================ #
+
+##############################################################################################################
+# < WIST >
+#**
+#* Returns the net purchase price of a product, converted to the given currency. If no supplier is given,
+#* the default supplier of the item is used.
+#*
+#* If the item has no link to the given supplier or if no default supplier is found, the price will be 0.
+#*
+#* @param ITEM The item to get the price of
+#* @param SUPPLIER (Optional) The supplier issuing the purchase price
+#* @param CURRENCY The currency to return the price in
+#*
+#* @return A decimal value, the net purchase price
+#*!
+Funprog GET_ITEM_PURCHASE_PRICE_NET(ITEM, SUPPLIER, CURRENCY)
+Value Char ITEM
+Value Char SUPPLIER
+Value Char CURRENCY
+
+  Local File ITMMASTER [ZITM]
+  Local File ITMBPS    [ZITP]
+
+  Read [ZITM]ITM0 = ITEM
+
+  If SUPPLIER <> ""
+    Read [ZITP]ITP0 = ITEM ; SUPPLIER
+  Else
+    Filter [ZITP] Where [ZITP]ITMREF = ITEM and [ZITP]DEFBPSFLG = 2
+    Read [ZITP] First
+  Endif
+
+  If fstat : End 0 : Endif
+
+  Local Decimal NET_PRICE
+
+  Local Char    ZVAT(10)(0..2)
+  Local Decimal ZMONTANT(0..10)
+  Local Tinyint ZERR
+
+  Call TARIF(ITEM, [ZITP]BPSNUM, "", "", "", 6, date$, 1, [ZITM]STU, CURRENCY, [L]ZVAT, [L]ZMONTANT, [L]ZERR)
+  NET_PRICE = [L]ZMONTANT(9)
+
+End NET_PRICE
+
+
+##############################################################################################################
+# < WIST >
+#**
+#* Returns the gross sales price of a product being sold to a specific customer.
+#*
+#* @param SITE The site to sell the item from
+#* @param ITEM The item to get the price of
+#* @param CUSTOMER The customer to sell the product to
+#* @param UNIT (Optional) The sales unit. If this is null, the default sales unit will be used
+#* @param QUANTITY The sold quantity
+#* @param CURRENCY The currency to return the price in
+#*
+#* @return A decimal value, the gross sales price
+#*!
+Funprog GET_ITEM_SALES_PRICE_GROSS(SITE, ITEM, CUSTOMER, UNIT, QUANTITY, CURRENCY)
+Value Char SITE, ITEM, CUSTOMER, UNIT, CURRENCY
+Value Decimal QUANTITY
+
+  Local File ITMMASTER [ZITM]
+  Read [ZITM]ITM0 = ITEM
+
+  If UNIT = "" : UNIT = [ZITM]SAU : Endif
+
+  Gosub SIMULATE_PRICE_SEARCH_OPEN
+
+  # Variables in mask [M:SPM0] are accessible here, to modify simulated price search parameters
+
+  Gosub SIMULATE_PRICE_SEARCH_RUN
+
+  Local Decimal GROSS_PRICE
+  GROSS_PRICE = [M:SPM0]XGROPRI(0)
+
+  Gosub SIMULATE_PRICE_SEARCH_CLOSE
+
+End GROSS_PRICE
+
+##############################################################################################################
+# < WIST >
+#**
+#* Returns the net sales price of a product being sold to a specific customer.
+#*
+#* @param SITE The site to sell the item from
+#* @param ITEM The item to get the price of
+#* @param CUSTOMER The customer to sell the product to
+#* @param UNIT (Optional) The sales unit. If this is null, the default sales unit will be used
+#* @param QUANTITY The sold quantity
+#* @param CURRENCY The currency to return the price in
+#*
+#* @return A decimal value, the net sales price
+#*!
+Funprog GET_ITEM_SALES_PRICE_NET(SITE, ITEM, CUSTOMER, UNIT, QUANTITY, CURRENCY)
+Value Char SITE, ITEM, CUSTOMER, UNIT, CURRENCY
+Value Decimal QUANTITY
+
+  Local File ITMMASTER [ZITM]
+  Read [ZITM]ITM0 = ITEM
+
+  If UNIT = "" : UNIT = [ZITM]SAU : Endif
+
+  Gosub SIMULATE_PRICE_SEARCH_OPEN
+
+  # Variables in mask [M:SPM0] are accessible here, to modify simulated price search parameters
+
+  Gosub SIMULATE_PRICE_SEARCH_RUN
+
+  Local Decimal NET_PRICE
+  NET_PRICE = [M:SPM0]XNETPRI(0)
+
+  Gosub SIMULATE_PRICE_SEARCH_CLOSE
+
+End NET_PRICE
+
+##############################################################################################################
+# < WIST >
+#**
+#* Returns the discount of a product being sold to a specific customer.
+#*
+#* @param SITE The site to sell the item from
+#* @param ITEM The item to get the price of
+#* @param CUSTOMER The customer to sell the product to
+#* @param UNIT (Optional) The sales unit. If this is null, the default sales unit will be used
+#* @param QUANTITY The sold quantity
+#* @param CURRENCY The currency to return the price in
+#*
+#* @return A decimal value, the discount
+#*!
+Funprog GET_ITEM_SALES_PRICE_DISCOUNT(SITE, ITEM, CUSTOMER, UNIT, QUANTITY, CURRENCY)
+Value Char SITE, ITEM, CUSTOMER, UNIT, CURRENCY
+Value Decimal QUANTITY
+
+  Local File ITMMASTER [ZITM]
+  Read [ZITM]ITM0 = ITEM
+
+  If UNIT = "" : UNIT = [ZITM]SAU : Endif
+
+  Gosub SIMULATE_PRICE_SEARCH_OPEN
+
+  # Variables in mask [M:SPM0] are accessible here, to modify simulated price search parameters
+
+  Gosub SIMULATE_PRICE_SEARCH_RUN
+
+  Local Decimal DISCOUNT
+
+  Local Integer I
+  For I = 0 To GNBREM - 1
+
+    DISCOUNT += evalue("[M:SOH4]DISCRGVAL" + num$(I+1))
+
+  Next
+
+  Gosub SIMULATE_PRICE_SEARCH_CLOSE
+
+End DISCOUNT
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##############################################################################################################
+$SIMULATE_PRICE_SEARCH_OPEN
+
+  Local Mask SPSIMUL0 [SPM0]
+
+  Local Char S_GACTION(100)
+  S_GACTION = GACTION
+  GACTION = "SAISPSI"
+
+  Gosub OUVRE_SAISPSI From FUNVENSPSI
+  Gosub DEBUT_SAISPSI From FUNVENSPSI
+
+  If dim(SITE) > 0      : [M:SPM0]SALFCY  = SITE      : Endif
+  If dim(SITE) > 0      : [M:SPM0]STOFCY  = SITE      : Endif
+
+  If dim(CUSTOMER) > 0  : [M:SPM0]BPCORD  = CUSTOMER  : Endif
+  If dim(ITEM) > 0      : [M:SPM0]XITMREF = ITEM      : Endif
+  If dim(UNIT) > 0      : [M:SPM0]XSAU    = UNIT      : Endif
+  If dim(QUANTITY) > 0  : [M:SPM0]XQTY    = QUANTITY  : Endif
+  If dim(CURRENCY) > 0  : [M:SPM0]CUR     = CURRENCY  : Endif
+
+Return
+
+##############################################################################################################
+$SIMULATE_PRICE_SEARCH_RUN
+
+  Gosub APPLIQUER From FUNVENSPSI
+
+Return
+
+##############################################################################################################
+$SIMULATE_PRICE_SEARCH_CLOSE
+
+  GACTION = S_GACTION
+  Close Local Mask [SPM0]
+
+Return
+
+
+
+#############################################################################
+Subprog TARIF(ARTICLE,TIERS,UTILISATEUR,ADRESSE,SITE,MODULE,DAT,QTY,UOM,CUR,VAT,MONTANT,ERR)
+Value Char      ARTICLE              : # code article
+Value Char      TIERS                : # code Client/supplier
+Value Char      UTILISATEUR          : # User
+Value Char      ADRESSE              : # adresse client livré (vente)
+Value Char      SITE                 : # site
+Value Integer   MODULE               : # module
+Value Date      DAT                  : # date
+Value Decimal   QTY                  : # Quantity
+Value Char      UOM                  : # unit
+Value Char      CUR                  : # Currency
+Value Char      VAT()(0..)           : # taxes Code
+Variable Decimal MONTANT(0..10)      : #
+Variable Libelle   ERR               : # 1 if error
+# Declaration variables
+Local Integer   PLITYP               : # type de tarif
+Local Char      TRAIT (20)           : # type de traitement
+Local Shortint  MOTIF  (0..10)       : # motif
+Local Shortint  PRIORITE(0..10)      : # priorite
+Local Char      PLI   (20) (0..10)   : # code tarif
+Local Char      PLICRD (20) (0..10)  : # code de la fiche tarif
+Local Integer   PLILIN    (0..10)    : # no de ligne de la fiche tarif
+Local Char      FOCITMREF(20)(0..10) : # article gratuit
+Local Decimal   FOCQTY      (0..10)  : # quantite gratuite
+Local Char      FOCUOM(20)    (0..10): # unite vente gratuit
+Local Shortint  FOCMOTIF    (0..10)  : # motif gratuit
+Local Date      PLISTRDAT            : # date debut validite
+Local Date      PLIENDDAT            : # date fin   validite
+Local Libelle   INTERDIT             : # 1 si interdit
+Local Integer   CHGTYP               : # type de cours
+Local Integer   PRITYP               : # prix ht ou ttc
+Local Char      PARAM_T (25)(0..5)   : # parametres complementaires
+                                       # indice 0 = coef multiplicateur UV --> US
+                                       # indice 1 = regime de taxe
+Local Decimal   ZGROPRI              : # Prix brut
+Local Decimal   ZREMISE(0..8)        : # Liste des remises
+Local Decimal   ZNETPRI              : # Prix net
+# Declaration des tables
+If clalev([F:ITM])=0 : Local File ITMMASTER  [ITM] : Endif
+If clalev([F:ITS])=0 : Local File ITMSALES   [ITS] : Endif
+If clalev([F:BPR])=0 : Local File BPARTNER   [BPR] : Endif
+If clalev([F:BPC])=0 : Local File BPCUSTOMER [BPC] : Endif
+If clalev([F:BPS])=0 : Local File BPSUPPLIER [BPS] : Endif
+If clalev([F:BPD])=0 : Local File BPDLVCUST  [BPD] : Endif
+If clalev([F:ITF])=0 : Local File ITMFACILIT [ITF] : Endif
+If clalev([F:SPK])=0 : Local File SPRICLINK  [SPK] : Endif
+If clalev([F:PPK])=0 : Local File PPRICLINK  [PPK] : Endif
+If clalev([F:AUS])=0 : Local File AUTILIS    [AUS] : Endif
+If clalev([F:PRS])=0 : Local File PRICSTRUCT [PRS] : Endif
+# Lecture des tables
+Read [ITM]ITM0=ARTICLE
+If [S]fstat>0 : Raz [F:ITM] : Endif
+PARAM_T(0) = num$([F:ITM]SAUSTUCOE)
+If PARAM_T(0)="0" | PARAM_T(0)="" : PARAM_T(0)="1" : Endif
+Read [BPR]BPR0=TIERS
+If [S]fstat>0 : Raz [F:BPR] : Endif
+Read [ITF]ITF0=ARTICLE;SITE
+If [S]fstat>0 : Raz [F:ITF] : Endif
+Read [AUS]CODUSR=UTILISATEUR
+If [S]fstat>0 : Raz [F:AUS] : Endif
+If MODULE=5
+   # Vente
+   Read [ITS]ITS0=ARTICLE
+   If [S]fstat>0 : Raz [F:ITS] : Endif
+   Read [BPC]BPC0=TIERS
+   If [S]fstat>0 : Raz [F:BPC] : Endif
+   Read [BPD]BPD0=TIERS;ADRESSE
+   If [S]fstat>0 : Raz [F:BPD] : Endif
+   PRITYP     = [F:BPC]PRITYP
+   CHGTYP     = [F:BPC]CHGTYP
+   #PARAM_T(1) = [F:BPC]VACBPR
+   PARAM_T(1) = VAT(0)
+Else
+   # Achat
+   Read [BPS]BPS0=TIERS
+   If [S]fstat>0 : Raz [F:BPS] : Endif
+   PRITYP=1
+   CHGTYP=[F:BPS]CHGTYP
+   #PARAM_T(1) = [F:BPS]VACBPR
+   PARAM_T(1) = VAT(0)
+Endif
+# Affectation variables
+PLITYP = 1
+If MODULE=5
+   # Vente
+   TRAIT="SOH"
+Else
+   # Achat
+   TRAIT="POH"
+Endif
+Call TARIFCHGT(MODULE) From TRTPRICE
+Raz MONTANT
+Call TARIFRECH
+&             (MODULE,PLITYP,TRAIT,
+&              DAT,QTY,UOM,CHGTYP,CUR,PRITYP,VAT,PARAM_T,MONTANT,MOTIF,PRIORITE,
+&              PLI,PLICRD,PLILIN,
+&              FOCITMREF,FOCQTY,FOCUOM,FOCMOTIF,
+&              PLISTRDAT,PLIENDDAT,INTERDIT,ERR)
+& From TRTPRICE
+If PLI="" & MODULE=5
+   # On prend le prix de base si on ne trouve rien
+   MONTANT(0)=[F:ITS]BASPRI
+Endif
+# On prend la remise 5 pour savoir si il existe un tarif (0) ou pas (-99)
+If PLI=""
+   MONTANT(5)=-99
+Else
+   MONTANT(5)=0
+Endif
+# Calcul du prix net
+Raz [L]ZREMISE,[L]ZGROPRI,[L]ZNETPRI
+[L]ZGROPRI    = MONTANT(0)
+[L]ZREMISE(0) = MONTANT(1)
+[L]ZREMISE(1) = MONTANT(2)
+[L]ZREMISE(2) = MONTANT(3)
+If MODULE=5
+   # Vente
+   Call CALNET(1,"",[L]ZGROPRI,[L]ZREMISE,QTY,[L]ZNETPRI,CUR) From TRTPRICE
+Else
+   # Achat
+   Call CALNET(2,"",[L]ZGROPRI,[L]ZREMISE,QTY,[L]ZNETPRI,CUR) From TRTPRICE
+Endif
+MONTANT(9) = [L]ZNETPRI
+End
+
+
+Subprog TARIF_TOTO(ARTICLE,TIERS,UTILISATEUR,ADRESSE,SITE,MODULE,DAT,QTY,UOM,CUR,VAT,MONTANT,ERR)
+Value Char      ARTICLE              : # code article
+Value Char      TIERS                : # code tiers
+Value Char      UTILISATEUR          : # Utilisateur
+Value Char      ADRESSE              : # adresse client livré (vente)
+Value Char      SITE                 : # site
+Value Integer   MODULE               : # module (vente/achat)
+Value Date      DAT                  : # date commande ou livraison
+Value Decimal   QTY                  : # quantite
+Value Char      UOM                  : # unite de vente
+Value Char      CUR                  : # devise de la commande
+Value Char      VAT()(0..)           : # codes taxes
+Variable Decimal MONTANT(0..10)      : # (0)=prix (1..9)=fr/rem (10)=comm rep
+Variable Libelle   ERR               : # 1 si erreur
+# Declaration variables
+Local Integer   PLITYP               : # type de tarif
+Local Char      TRAIT (20)           : # type de traitement
+Local Shortint  MOTIF  (0..10)       : # motif
+Local Shortint  PRIORITE(0..10)      : # priorite
+Local Char      PLI   (20) (0..10)   : # code tarif
+Local Char      PLICRD (20) (0..10)  : # code de la fiche tarif
+Local Integer   PLILIN    (0..10)    : # no de ligne de la fiche tarif
+Local Char      FOCITMREF(20)(0..10) : # article gratuit
+Local Decimal   FOCQTY      (0..10)  : # quantite gratuite
+Local Char      FOCUOM(20)    (0..10): # unite vente gratuit
+Local Shortint  FOCMOTIF    (0..10)  : # motif gratuit
+Local Date      PLISTRDAT            : # date debut validite
+Local Date      PLIENDDAT            : # date fin   validite
+Local Libelle   INTERDIT             : # 1 si interdit
+Local Integer   CHGTYP               : # type de cours
+Local Integer   PRITYP               : # prix ht ou ttc
+Local Char      PARAM_T (25)(0..5)   : # parametres complementaires
+                                       # indice 0 = coef multiplicateur UV --> US
+                                       # indice 1 = regime de taxe
+Local Decimal   ZGROPRI              : # Prix brut
+Local Decimal   ZREMISE(0..8)        : # Liste des remises
+Local Decimal   ZNETPRI              : # Prix net
+# Declaration des tables
+If clalev([F:ITM])=0 : Local File ITMMASTER  [ITM] : Endif
+If clalev([F:ITS])=0 : Local File ITMSALES   [ITS] : Endif
+If clalev([F:BPR])=0 : Local File BPARTNER   [BPR] : Endif
+If clalev([F:BPC])=0 : Local File BPCUSTOMER [BPC] : Endif
+If clalev([F:BPS])=0 : Local File BPSUPPLIER [BPS] : Endif
+If clalev([F:BPD])=0 : Local File BPDLVCUST  [BPD] : Endif
+If clalev([F:ITF])=0 : Local File ITMFACILIT [ITF] : Endif
+If clalev([F:SPK])=0 : Local File SPRICLINK  [SPK] : Endif
+If clalev([F:PPK])=0 : Local File PPRICLINK  [PPK] : Endif
+If clalev([F:AUS])=0 : Local File AUTILIS    [AUS] : Endif
+If clalev([F:PRS])=0 : Local File PRICSTRUCT [PRS] : Endif
+# Lecture des tables
+Read [ITM]ITM0=ARTICLE
+If [S]fstat>0 : Raz [F:ITM] : Endif
+PARAM_T(0) = num$([F:ITM]SAUSTUCOE)
+If PARAM_T(0)="0" | PARAM_T(0)="" : PARAM_T(0)="1" : Endif
+Read [BPR]BPR0=TIERS
+If [S]fstat>0 : Raz [F:BPR] : Endif
+Read [ITF]ITF0=ARTICLE;SITE
+If [S]fstat>0 : Raz [F:ITF] : Endif
+Read [AUS]CODUSR=UTILISATEUR
+If [S]fstat>0 : Raz [F:AUS] : Endif
+If MODULE=5
+   # Vente
+   Read [ITS]ITS0=ARTICLE
+   If [S]fstat>0 : Raz [F:ITS] : Endif
+   Read [BPC]BPC0=TIERS
+   If [S]fstat>0 : Raz [F:BPC] : Endif
+   Read [BPD]BPD0=TIERS;ADRESSE
+   If [S]fstat>0 : Raz [F:BPD] : Endif
+   PRITYP     = [F:BPC]PRITYP
+   CHGTYP     = [F:BPC]CHGTYP
+   #PARAM_T(1) = [F:BPC]VACBPR
+   PARAM_T(1) = VAT(0)
+Else
+   # Achat
+   Read [BPS]BPS0=TIERS
+   If [S]fstat>0 : Raz [F:BPS] : Endif
+   PRITYP=1
+   CHGTYP=[F:BPS]CHGTYP
+   #PARAM_T(1) = [F:BPS]VACBPR
+   PARAM_T(1) = VAT(0)
+Endif
+# Affectation variables
+PLITYP = 1
+If MODULE=5
+   # Vente
+   TRAIT="SOH"
+Else
+   # Achat
+   TRAIT="POH"
+Endif
+Call TARIFCHGT(MODULE) From TRTPRICE
+Raz MONTANT
+Call TARIFRECH
+&             (MODULE,PLITYP,TRAIT,
+&              DAT,QTY,UOM,CHGTYP,CUR,PRITYP,VAT,PARAM_T,MONTANT,MOTIF,PRIORITE,
+&              PLI,PLICRD,PLILIN,
+&              FOCITMREF,FOCQTY,FOCUOM,FOCMOTIF,
+&              PLISTRDAT,PLIENDDAT,INTERDIT,ERR)
+& From TRTPRICE
+If PLI="" & MODULE=5
+   # On prend le prix de base si on ne trouve rien
+   MONTANT(0)=[F:ITS]BASPRI
+Endif
+# Calcul du prix net
+Raz [L]ZREMISE,[L]ZGROPRI,[L]ZNETPRI
+[L]ZGROPRI    = MONTANT(0)
+[L]ZREMISE(0) = MONTANT(1)
+[L]ZREMISE(1) = MONTANT(2)
+[L]ZREMISE(2) = MONTANT(3)
+If MODULE=5
+   # Vente
+   Call CALNET(1,"",[L]ZGROPRI,[L]ZREMISE,QTY,[L]ZNETPRI,CUR) From TRTPRICE
+Else
+   # Achat
+   Call CALNET(2,"",[L]ZGROPRI,[L]ZREMISE,QTY,[L]ZNETPRI,CUR) From TRTPRICE
+Endif
+MONTANT(9) = [L]ZNETPRI
+End
+

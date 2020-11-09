@@ -33,7 +33,7 @@
 #* @return A string value, the new modified string
 #*!
 Funprog REPLACE(STRING, TO_REPLACE, REPLACE_BY)
-Value Char STRING
+Value Clbfile STRING
 Value Char TO_REPLACE
 Value Char REPLACE_BY
 
@@ -48,6 +48,29 @@ Local Integer POS
 
 End STRING
 
+##############################################################################################################
+# < WIST >
+#**
+#* Assigns a string array variables values with the values of another string array, effectively copying an
+#* array into a new variable. The dimensions of both arrays limit the assigned dimensions of the result.
+#*
+#* @param FROM_ARRAY The array to get the values from
+#* @param TO_ARRAY The array to assign the values to
+#*
+#* @return A string value, the new modified string
+#*!
+Subprog SET_ARRAY_STR(FROM_ARRAY, TO_ARRAY)
+Value Char FROM_ARRAY
+Variable Char TO_ARRAY
+
+  Raz TO_ARRAY
+
+  Local Integer I
+  For I = 0 To min(dim(FROM_ARRAY), dim(TO_ARRAY)) - 1
+    TO_ARRAY(I) = FROM_ARRAY(I)
+  Next
+
+End
 
 ##############################################################################################################
 # < WIST >
@@ -154,7 +177,7 @@ End FIRST_WEEKDAY
 #* @return An integer value, representing the position of the given occurence of a string value, in another string
 #*!
 Funprog GET_SUBSTRING_POS(SEARCHSTRING, SEARCHVALUE, OCCURENCE)
-Const Char SEARCHVALUE
+Value Char SEARCHVALUE
 Value Integer OCCURENCE
 
 Local Integer COUNT
@@ -164,6 +187,10 @@ Local Integer POS
 
     POS = instr(POS + 1, SEARCHSTRING, SEARCHVALUE)
     COUNT += 1
+
+    If POS = 0
+      Break
+    Endif
 
   Wend
 
@@ -191,20 +218,38 @@ Value Integer SEGMENTINDEX
 Local Integer FIRSTCHARPOS
 Local Integer LASTCHARPOS
 
-  If SEGMENTINDEX = 0 : SEGMENTINDEX = 1 : Endif
+  If SEGMENTINDEX = 0 : End "" : Endif
 
-  FIRSTCHARPOS = func GET_SUBSTRING_POS(SEARCHSTRING, DELIMITER, SEGMENTINDEX - 1) + 1
-  LASTCHARPOS  = func GET_SUBSTRING_POS(SEARCHSTRING, DELIMITER, SEGMENTINDEX)     - 1
+  FIRSTCHARPOS = func GET_SUBSTRING_POS(SEARCHSTRING, DELIMITER, SEGMENTINDEX - 1)
+  LASTCHARPOS  = func GET_SUBSTRING_POS(SEARCHSTRING, DELIMITER, SEGMENTINDEX)
 
-  If LASTCHARPOS < 1
-    LASTCHARPOS = len(SEARCHSTRING) - 1
+  # Delimiter non-existent or out of bounds, and looking for first segment
+  If (FIRSTCHARPOS = 0 and LASTCHARPOS = 0) and SEGMENTINDEX <> 1
+    End ""
   Endif
 
-  Local Char RESULT(250)
+  # If looking for the last occuring segment, LASTCHARPOS will be 0, so set it to length of SEARCHSTRING
+  If LASTCHARPOS <= 0
+    LASTCHARPOS = len(SEARCHSTRING)
+  Else
+    # Exclude first character of next occurring delimiter from result
+    LASTCHARPOS  -= 1
+  Endif
 
+  # GET_SUBSTRING_POS returns the position of the first character of the delimiter,
+  # this excludes the entire leading delimiter from the result
+  If FIRSTCHARPOS > 0
+    FIRSTCHARPOS += len(DELIMITER)
+  Endif
+
+  # First character cannot be lower than 1
+  FIRSTCHARPOS = max(FIRSTCHARPOS, 1)
+
+  Local Char RESULT(250)
   RESULT = seg$(SEARCHSTRING, FIRSTCHARPOS, LASTCHARPOS)
 
 End RESULT
+
 
 ##############################################################################################################
 # < WIST >
@@ -289,7 +334,7 @@ End
 #*
 #* @param MENU The local menu number
 #* @param INDEX The index in the local menu
-#* @param LANGUAGE The language to return the text in
+#* @param The language to return the text in
 #*
 #* @return A string value, the local menu message
 #*

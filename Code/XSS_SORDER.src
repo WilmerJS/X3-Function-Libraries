@@ -24,6 +24,137 @@
 ##############################################################################################################
 # < WIST >
 #**
+#* Checks if an order line will be deliverable at the specified date, by calculating if the
+#* product quantity in stock will be enough to satisfy it based on its priority (XX1CAVAPRIO).
+#* <pre></pre>
+#*
+#* This function takes into account order lines with a higher priority (lower XX1CAVAPRIO)
+#* than the one that is being checked, and assigns items to them first. If any stock quantity
+#* remains, the order line being checked may be delivered.
+#* <pre></pre>
+#*
+#* @param ORDER_NUM Order number
+#* @param LINE Order line
+#* @param SEQUENCE Order line sequence
+#* @param XDATE Date to check if line can be delivered on
+#*
+#* @return An integer value
+#* <pre>
+#* 1 = line is deliverable
+#* 0 = line is not deliverable
+#* </pre>
+#*!
+Funprog IS_ORDER_LINE_DELIVERABLE_AT_DATE(ORDER_NUM, LINE, SEQUENCE, XDATE)
+Value Char ORDER_NUM
+Value Integer LINE
+Value Integer SEQUENCE
+Value Date XDATE
+
+  If clalev([YSOQ])=0 : Local File SORDERQ [YSOQ] : Endif
+
+  Read [YSOQ]SOQ0 = ORDER_NUM ; LINE ; SEQUENCE
+
+  Local Date DATE_OF_NEXT_RECEIPT
+  Local Date LEADTIME_LIMIT
+  Local Date DATE_CHECK_EXCESS
+  Local Decimal QTY_AVAILABLE
+
+  Local Integer PORDER_PARAM
+  Local Integer LT_PARAM
+  Local Integer POC_PARAM
+
+  # Parameter PORDER
+  PORDER_PARAM = func XSS_PARAMETERS.GET_VALUE("X3AVAILABILITY", "PORDER", [YSOQ]CPY, [YSOQ]STOFCY)
+  # Parameter THELEATIM
+  LT_PARAM = func XSS_PARAMETERS.GET_VALUE("X3AVAILABILITY", "THELEATIM", [YSOQ]CPY, [YSOQ]STOFCY)
+  # Parameter CONTRACTPO
+  POC_PARAM = func XSS_PARAMETERS.GET_VALUE("X3AVAILABILITY", "CONTRACTPO", [YSOQ]CPY, [YSOQ]STOFCY)
+
+  LEADTIME_LIMIT = func XX1C_ITEM_AVAILABILITY.GET_LEADTIME_DATE([YSOQ]STOFCY, [YSOQ]ITMREF, LT_PARAM)
+
+  DATE_OF_NEXT_RECEIPT = func XSS_PORDER.GET_NEXT_RECEIPT_DATE_BY_ITEM([YSOQ]STOFCY, [YSOQ]ITMREF, XDATE + 1, POC_PARAM - 1, PORDER_PARAM)
+  DATE_OF_NEXT_RECEIPT = func XSS_VARIABLES.IS_NULL(DATE_OF_NEXT_RECEIPT, LEADTIME_LIMIT)
+
+  DATE_CHECK_EXCESS = min(DATE_OF_NEXT_RECEIPT, LEADTIME_LIMIT) - 1
+
+  QTY_AVAILABLE = func XX1C_ITEM_AVAILABILITY.GET_ITEM_AVAILABILITY_AT_DATE_BY_PRIO([YSOQ]STOFCY, [YSOQ]ITMREF, DATE_CHECK_EXCESS, [YSOQ]XX1CAVAPRIO)
+
+#  If [V]GUSER = "ADMIN"
+#    Infbox "Checking if deliverable at date: " + num$(XDATE),
+#&          "... by checking availability at: " + num$(DATE_CHECK_EXCESS),
+#&          "Available qty: " + num$(QTY_AVAILABLE)
+#  Endif
+
+  If QTY_AVAILABLE >= ([YSOQ]QTYSTU - [YSOQ]DLVQTYSTU)
+    End 1
+  Endif
+
+End 0
+
+##############################################################################################################
+# < WIST >
+#**
+#* Gets the first date an order line can be delivered, by returning the first date that the expected stock
+#* quantity can satisfy this order line.
+#* <pre></pre>
+#*
+#* This functions takes into account lines with the same requested delivery date from all orders,
+#* and prioritizes the ones with a <b>lower XX1CAVAPRIO</b>.
+#* <pre></pre>
+#*
+#* @param ORDER_NUM Order number
+#* @param LINE Order line
+#* @param SEQUENCE Order line sequence
+#*
+#* @return The first expected delivery date
+#*!
+Funprog GET_ORDER_LINE_DELIVERABLE_DATE(ORDER_NUM, LINE, SEQUENCE)
+Value Char ORDER_NUM
+Value Integer LINE
+Value Integer SEQUENCE
+
+  If clalev([YSOQ])=0 : Local File SORDERQ [YSOQ] : Endif
+
+  Read [YSOQ]SOQ0 = ORDER_NUM ; LINE ; SEQUENCE
+
+  Local Date CUSTOMER_REQUEST_DATE    # customers requested date OR today, whichever is largest
+  Local Date LEADTIME_LIMIT           # lead time limit
+  Local Date DELIVERY_DATE            # the final delivery date
+  Local Date CHECK_DATE               # variable to check whether dates are OK to deliver on
+  Local Date EARLIEST_DATE_TO_CHECK   # don't check earlier than this date
+  Local Integer PORDER_PARAM
+  Local Integer LT_PARAM
+
+  # Parameter PORDER
+  PORDER_PARAM = func XSS_PARAMETERS.GET_VALUE("X3AVAILABILITY", "PORDER", [YSOQ]CPY, [YSOQ]STOFCY)
+  # Parameter THELEATIM
+  LT_PARAM = func XSS_PARAMETERS.GET_VALUE("X3AVAILABILITY", "THELEATIM", [YSOQ]CPY, [YSOQ]STOFCY)
+  # Parameter CONTRACTPO
+  POC_PARAM = func XSS_PARAMETERS.GET_VALUE("X3AVAILABILITY", "CONTRACTPO", [YSOQ]CPY, [YSOQ]STOFCY)
+
+
+  LEADTIME_LIMIT          = func XX1C_ITEM_AVAILABILITY.GET_LEADTIME_DATE([YSOQ]STOFCY, [YSOQ]ITMREF, LT_PARAM)
+  DELIVERY_DATE           = LEADTIME_LIMIT  # start here, then check if we can deliver earlier
+  CHECK_DATE              = LEADTIME_LIMIT  # lead time date won't actually be checked, CHECK_DATE is reassigned before first check
+  EARLIEST_DATE_TO_CHECK  = date$
+
+  Repeat
+
+    CHECK_DATE = max(EARLIEST_DATE_TO_CHECK, func XSS_PORDER.GET_LAST_RECEIPT_DATE_BY_ITEM([YSOQ]STOFCY, [YSOQ]ITMREF, CHECK_DATE - 1, POC_PARAM - 1, PORDER_PARAM))
+
+    If (func IS_ORDER_LINE_DELIVERABLE_AT_DATE(ORDER_NUM, LINE, SEQUENCE, CHECK_DATE))
+      DELIVERY_DATE = CHECK_DATE
+    Else
+      Break
+    Endif
+
+  Until CHECK_DATE = EARLIEST_DATE_TO_CHECK
+
+End DELIVERY_DATE
+
+##############################################################################################################
+# < WIST >
+#**
 #* Returns the last (highest) expected delivery date found on the lines of an order.
 #*
 #* @param ORDER_NUM Order number
@@ -94,8 +225,6 @@ Value Char ITEM
   Wend
 
 End
-
-
 
 
 

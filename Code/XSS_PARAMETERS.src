@@ -24,36 +24,12 @@
 ##############################################################################################################
 # < WIST >
 #**
-#* Checks if a Systemstöd developed product is active for this Sage X3 installation.
-#*
-#* @param PRODUCT_ID The product to check
-#*
-#* @return An integer value, 1 = active || 0 = inactive
-#*!
-Funprog IS_PRODUCT_ACTIVE(PRODUCT_ID)
-Value Char PRODUCT_ID
-
-  Local File XSPRODUCTS [YXSP]
-  Read [YXSP]XSP0 = PRODUCT_ID
-
-  If fstat
-    End 0
-  Endif
-
-  Local Tinyint RETVAL
-  RETVAL = max(0, [YXSP]ISACTIVE - 1)
-
-End RETVAL
-
-##############################################################################################################
-# < WIST >
-#**
 #* Gets the value of a Systemstöd product parameter.
 #*
 #* @param PRODUCT_ID The product ID of the product the parameter belongs to
 #* @param PARAMETER_ID The parameter ID
-#* @param COMPANY The company dimension of the parameter, can be null
-#* @param SITE The site dimension of the parameter, can be null
+#* @param COMPANY The company dimension of the parameter
+#* @param SITE The site dimension of the parameter
 #*
 #* @return A parameter value, can be any type
 #*
@@ -91,6 +67,31 @@ Value Char SITE
   Endif
 
 End [XX1CPV]PARAMVALUE
+
+##############################################################################################################
+# < WIST >
+#**
+#* Checks if a Systemstöd developed product is active for this Sage X3 installation.
+#*
+#* @param PRODUCT_ID The product to check
+#*
+#* @return An integer value, 1 = active || 0 = inactive
+#*!
+Funprog IS_PRODUCT_ACTIVE(PRODUCT_ID)
+Value Char PRODUCT_ID
+
+  Local File XSPRODUCTS [YXSP]
+  Read [YXSP]XSP0 = PRODUCT_ID
+
+  If fstat
+    End 0
+  Endif
+
+  Local Tinyint RETVAL
+  RETVAL = max(0, [YXSP]ISACTIVE - 1)
+
+End RETVAL
+
 
 ##############################################################################################################
 # < WIST >
@@ -135,7 +136,6 @@ End [XX1CP]PARAMNAME
 #  PARAMDIM = "Company: " + COMPANY + " Site: " + SITE
 #
 #End PARAMDIM
-
 
 
 

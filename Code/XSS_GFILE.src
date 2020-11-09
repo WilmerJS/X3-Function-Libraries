@@ -1,4 +1,3 @@
-#<AdxTL>@(#)0.0.0.0 $Revision$
 # ==================================================================================== #
 #
 #   AKTIEBOLAGET SYSTEMSTÖD SVERIGE
@@ -8,7 +7,7 @@
 #
 #   ---
 #     Name:
-#       X_GFILE
+#       XSS_GFILE
 #     Description:
 #       A script containing functions for handling 'GFILES'.
 #
@@ -40,11 +39,11 @@
 #*
 #*!
   Subprog DECLARE_GFILEVARS()
-    Global Char GFILENAM(250)(1..20)
-    Global Char GFILEDIR(20)(1..20)
-    Global Char GFILEEXT(10)(1..20)
-    Global Char GFILELOC(250)(1..20)
-    Global Char GFILEPATH(250)(1..20)
+    Global Char GFILENAM(250)(20)
+    Global Char GFILEDIR(20)(20)
+    Global Char GFILEEXT(10)(20)
+    Global Char GFILELOC(250)(20)
+    Global Char GFILEPATH(250)(20)
   End
 
 ##########################################################################################
@@ -68,26 +67,30 @@
 #*
 #* @return The index position of the files data in the GFILE array variables.
 #*!
-  Funprog ADD_GFILE(FILEDIR, FILENAM, FILEEXT)
-    Value Char FILEDIR
-    Value Char FILENAM
-    Value Char FILEEXT
+Funprog ADD_GFILE(FILEDIR, FILENAM, FILEEXT)
+Value Char FILEDIR
+Value Char FILENAM
+Value Char FILEEXT
 
-    Local Integer INDEX
+  If dim(GFILENAM) < 0
+    Call DECLARE_GFILEVARS()
+  Endif
 
-    If dim(GFILENAM) < 0
-      Call DECLARE_GFILEVARS()
-    Endif
+  Local Integer INDEX
+  INDEX = find("", GFILENAM) - 1
 
-    INDEX = find("", GFILENAM)
+  If INDEX < 0 or INDEX > 19
+    Errbox "Error when adding GFILE - too many GFILES are already handled. Please contact Systemstöd." Titled "Memory overflow"
+    End -1
+  Endif
 
-    GFILENAM(INDEX)  = FILENAM
-    GFILEDIR(INDEX)  = FILEDIR
-    GFILEEXT(INDEX)  = FILEEXT
-    GFILELOC(INDEX)  = "[" + FILEDIR + "]/" + FILENAM + "." + FILEEXT
-    GFILEPATH(INDEX) = filpath(FILEDIR, FILENAM, FILEEXT)
+  GFILENAM(INDEX)  = FILENAM
+  GFILEDIR(INDEX)  = FILEDIR
+  GFILEEXT(INDEX)  = FILEEXT
+  GFILELOC(INDEX)  = "[" + FILEDIR + "]/" + FILENAM + "." + FILEEXT
+  GFILEPATH(INDEX) = filpath(FILEDIR, FILENAM, FILEEXT)
 
-  End INDEX
+End INDEX
 
 ##########################################################################################
 # < WIST >
@@ -97,9 +100,9 @@
 #* @param INDEX Index of the GFILE variables to be erased.
 #*
 #*!
-  Subprog REMOVE_GFILE(INDEX)
-    Value Integer INDEX
+Subprog REMOVE_GFILE(INDEX)
+  Value Integer INDEX
 
-    Raz GFILENAM(INDEX), GFILEDIR(INDEX), GFILEEXT(INDEX), GFILELOC(INDEX), GFILEPATH(INDEX)
-  End
+  Raz GFILENAM(INDEX), GFILEDIR(INDEX), GFILEEXT(INDEX), GFILELOC(INDEX), GFILEPATH(INDEX)
+End
 

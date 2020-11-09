@@ -39,64 +39,38 @@ Value Char OBJECT_TYPE
 
 End USER_INPUT
 
-
+##############################################################################################################
+# < WIST >
+#**
+#* Starts a progress (loading) bar.
+#*
+#*!
+Subprog PROGRESS_BAR_START(TITLE)
+Value Char TITLE
+  Call OUVRE_VLC(TITLE, "", "") From GESECRAN
+End
 
 ##############################################################################################################
 # < WIST >
 #**
-#* Adds a button to a Sage X3 window. The window will need to be validated before the button is displayed.
-#*
-#* @param WINDOW The window
-#* @param BTYPE Button type
-#* @param BCODE Button code
-#* @param BVALIDATING 1 = Non-validating, 2 = Validating
-#* @param BTEXT The ID of the dictionary message to be used as the button text
-#* @param BACTION The action that the button should call
-#* @param BACTCODE Activity code for the button
-#*
-#* @return An integer value, fstat value of the transaction (non-zero means error occured)
+#* Ends a progress (loading) bar.
 #*
 #*!
-Funprog ADD_WINDOW_BUTTON(WINDOW, BTYPE, BCODE, BVALIDATING, BTEXT, BACTION, BACTCODE)
-Value Char WINDOW
-Value Shortint BTYPE
-Value Char BCODE
-Value Tinyint BVALIDATING
-Value Integer BTEXT
-Value Char BACTION
-Value Char BACTCODE
+Subprog PROGRESS_BAR_END()
+  Call FERME_VLC() From GESECRAN
+End
 
-  Local File AWINBOUT [YAWT]
-  Filter [YAWT] Where [YAWT]WIN = WINDOW Order By [YAWT]NUM Desc
-  Read [YAWT] First
-
-  Local Shortint NEXT_BNUM
-  NEXT_BNUM = [YAWT]NUM
-
-  Raz [YAWT]
-
-  Trbegin [YAWT]
-  [YAWT]WIN         = WINDOW
-  [YAWT]NUM         = NEXT_BNUM
-  [YAWT]CODBOUT     = BCODE
-  [YAWT]TYPBOUT     = BTYPE
-  [YAWT]VALBOUT     = BVALIDATING
-  [YAWT]TXTBOUT     = BTEXT
-  [YAWT]ACTBOUT     = BACTION
-  [YAWT]CODACTBOUT  = BACTCODE
-
-  Write [YAWT]
-
-  If fstat  : Rollback
-  Else      : Commit
-  Endif
-
-End fstat
-
-
-
-
-
+##############################################################################################################
+# < WIST >
+#**
+#* Updates the active progress (loading) bar with a new process text and completion level (percent).
+#*
+#*!
+Subprog PROGRESS_BAR_UPDATE(PROCESS, PERCENT)
+Value Char PROCESS
+Value Integer PERCENT
+  Call AFF_VLC(PROCESS, num$(PERCENT)) From GESECRAN
+End
 
 
 #

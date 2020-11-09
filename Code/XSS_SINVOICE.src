@@ -34,7 +34,7 @@
 Funprog CALCULATE_OCR(INVOICE_NUMBER)
 Value Char INVOICE_NUMBER
 
-  Local Tinyint CTRL, LOOP_D, CHECK_D
+  Local Tinyint CTRL, LOOP_D, CHECK_DIGIT
   Local Shortint I, TOTAL
   CTRL = 2
 
@@ -48,10 +48,10 @@ Value Char INVOICE_NUMBER
     CTRL = 3 - CTRL                               # toggle CTRL between 1 and 2
   Next
 
-  CHECK_D = 10 - mod(TOTAL, 10)                   # check digit = 10 minus the remainder of TOTAL divided by 10
-  If CHECK_D = 10 : CHECK_D = 0 : Endif           # 10 should be 0
+  CHECK_DIGIT = 10 - mod(TOTAL, 10)               # check digit = 10 minus the remainder of TOTAL divided by 10
+  If CHECK_DIGIT = 10 : CHECK_DIGIT = 0 : Endif   # 10 should be 0
 
-End INVOICE_NUMBER + num$(CHECK_D)
+End INVOICE_NUMBER + num$(CHECK_DIGIT)
 
 
 #
